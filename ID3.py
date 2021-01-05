@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 
 
-# example - e[0]- ex num, e[1]- class, e[2]-e[last] : features results
+# example - e[0]- ex num, e[1]- class, e[2]-e[last] : features results, e[feature_index] -> e[feature_index+2]
+
 
 def is_consistent(examples, class_c):
     for e in examples:
@@ -11,7 +12,7 @@ def is_consistent(examples, class_c):
     return True
 
 
-def entropy(self, x, y):
+def entropy(x, y):
     if x is 0 or y is 0:
         return 0
     sum = x + y
@@ -20,17 +21,87 @@ def entropy(self, x, y):
     return entropy
 
 
-class ID3():
+def information_gain(examples_group, feature_index):
+    values = []
+    for item in examples_group:
+        values.append(float(item[feature_index + 2]))
+    values = np.unique(values)
+    # print(values)
+    final_values = []
+    for i in range(len(values) - 1):
+        if values[i] is not values[i + 1]:
+            final_values.append((float(values[i]) + float(values[i + 1])) / 2)
+    best_val = -1
+    min_entropy = 0
+    for val in final_values:
+        min_e = float('-inf')
+        min_val = -1
+        lower, bigger = [], []
+        for ex in examples_group:
+            if float(ex[feature_index + 2]) <= val:
+                lower.append(ex)
+            else:
+                bigger.append(ex)
+            # print(lower)
+            # print(bigger)
+            # lower = examples_group[float(ex[feature_index+2]) <= val]
+            # bigger = examples_group[float(ex[feature_index+2]) > val]
+        print(lower)
+        print(bigger)
+        lower_o = np.count_nonzero(lower[:, :1])
+        lower_z = len(lower) - lower_o
+        bigger_o = np.count_nonzero(bigger[:, :1])
+        bigger_z = len(bigger) - bigger_o
+
+        lower_entropy = entropy(lower_z, lower_o)
+        bigger_entropy = entropy(bigger_z, bigger_o)
+        entropy = (len(lower) * lower_entropy + len(bigger) * bigger_entropy) / (len(lower) + len(bigger))
+        if entropy < min_e:
+            min_e = entropy
+            min_val = val
+            inner_lower = lower
+            inner_bigger = bigger
+        if min_e < min_entropy:
+            best_val = min_val
+            min_entropy = min_e
+    return min_entropy, best_val
+
+
+class Node():
+    def __init__(self, split_feature, split_val, left, right):
+        self.split_feature = split_feature
+        # bigger than val -> right, else -> left
+        self.split_val = split_val
+        self.right = right
+        self.left = left
+        self.classification = None
+
+    def find_class_by_example(self, example):
+        if self.classification is None and self.right is None and self.right is None:
+            return -1
+        if self.classification is not None:
+            return self.classification
+        elif example[self.split_feature + 2] <= self.split_val:
+            return self.left.find_class_by_example(example)
+        return self.right.find_class_by_example(example)
+
+
+class ID3:
     def __init__(self):
-        self.data_arr = self.load_data("train.csv")
+        self.data_arr = self.load_data('train.csv')
         # maybe need to del some items from here
         self.exampels = self.data_arr[1:-1]
         # print(self.exampels)
+        # print(self.exampels)
         self.features = self.data_arr[0][1:len(self.data_arr[0]) - 2]
-        self.test = self.load_data("test.csv")
+        # print(self.features)
+        self.test = None
         self.classes = self.find_classes()
+        root = Node(None, None, None, None)
+        self.tree = self.fit(self.exampels, self.features, None, None, root)
 
-    def load_data(self, filename):
+    @staticmethod
+    def load_data(filename):
         data = pd.read_csv(filename)
         # print(data)
         string_data = pd.DataFrame.to_string(data)
@@ -41,6 +112,7 @@ class ID3():
             list_data = tmp[0].split()
             data_arr.append(list_data)
         return data_arr
+        # print(np.loadtxt(filename, delimiter=',', skiprows=1))
 
     def find_classes(self):
         classes = []
@@ -64,43 +136,79 @@ class ID3():
         # print(majority_class_res)
         return majority_class_res
 
-    def information_gain(self, examples_group, feature_index):
-        group_size = len(examples_group)
-        values = []
-        for item in examples_group:
-            values.append(item[feature_index])
-        values.sort()
-        final_values = []
-        for i in range(len(values) - 1):
-            final_values.append((values[i] + values[i + 1]) / 2)
-
     def select_feature(self, features, examples):
-        # ID3
-        pass
+        feature_index = -1
+        max_IG = 0
+        split_val = None
+        for i in range(len(features)):
+            tmp_IG = information_gain(examples, i)
+            if tmp_IG[0] < max_IG:
+                max_IG = tmp_IG
+                feature_index = i
+                split_val = tmp_IG[1]
+            elif tmp_IG == max_IG:
+                if i > feature_index:
+                    feature_index = i
+                    split_val = tmp_IG[1]
+        return feature_index, split_val
 
     def create_sub_tree(self, features, class_c, feature, old_f):
         pass
 
-    def fit(self, examples, features, default, feature):
+    def fit(self, examples, features, default, feature, node):
         if examples is []:
             # means the leaf is empty
-            return None, [], default
+            node.classification = default
+            return node
 
         class_c = self.majority_class(examples)
 
         if is_consistent(examples, class_c):
             # means the node is consistent, make it a leaf
-            return None, [], class_c
+            node.classification = class_c
+            return node
 
         feature_f = self.select_feature(features, examples)
-        new_features = features - [feature_f]
+        node.split_val = feature_f[1]
+        node.split_feature = feature_f[0]
+        new_features = []
+        for f in features:
+            if f is not feature_f[0]:
+                new_features.append(f)
+        feature_val = feature_f[1]  # todo need to understand what is it
+        left, right = self.split(feature_f, feature_val, examples)
 
-        subtree = self.create_sub_tree(new_features, class_c, feature, features)
+        default_left = self.majority_class(left)
+        left_node = Node(feature_f, feature_val, None, None)
+        node.left = self.fit(left, new_features, default_left, None, left_node)
 
-        return feature_f, subtree, class_c
+        default_right = self.majority_class(right)
+        right_node = Node(feature_f, feature_val, None, None)
+        node.right = self.fit(right, new_features, default_right, None, right_node)
+
+        return node
+
+    def split(self, feature_index, val, example_group):
+        left, right = [], []
+        for ex in example_group:
+            if ex[feature_index + 2] < val:
+                # todo : probably need to do feature index + 1 / 2
+                left.append(ex)
+            else:
+                right.append(ex)
+        return left, right
+
+    def test(self, train_filename):
+        self.test = self.load_data(train_filename)
+        examples = self.test[1:-1]
+        right, wrong = 0, 0
+        for i in range(len(examples)):
+            if self.tree.find_class_by_example(examples[i]) is self.test[i + 1][0]:
+                right += 1
+            else:
+                wrong += 1
+        print(right / right + wrong)
 
 
 if __name__ == '__main__':
     classifier = ID3()
-    classifier.load_data("train.csv")
-    classifier.majority_class(classifier.exampels)
