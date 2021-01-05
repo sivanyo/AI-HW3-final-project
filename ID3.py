@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-
 # example - e[0]- ex num, e[1]- class, e[2]-e[last] : features results, e[feature_index] -> e[feature_index+2]
 
 
@@ -17,14 +16,15 @@ def entropy(x, y):
         return 0
     sum = x + y
     entropy = ((-x * np.log2(x / sum) / sum) - (-y * np.log2(y / sum) / sum))
-    print(entropy)
+    #print(entropy)
     return entropy
 
 
-def information_gain(examples_group, feature_index):
+def information_gain(examples_group, feature_index, class_c):
     values = []
     for item in examples_group:
-        values.append(float(item[feature_index + 2]))
+
+        values.append(float(item[feature_index+2]))
     values = np.unique(values)
     # print(values)
     final_values = []
@@ -46,28 +46,39 @@ def information_gain(examples_group, feature_index):
             # print(bigger)
             # lower = examples_group[float(ex[feature_index+2]) <= val]
             # bigger = examples_group[float(ex[feature_index+2]) > val]
-        print(lower)
-        print(bigger)
-        lower_o = np.count_nonzero(lower[:, :1])
-        lower_z = len(lower) - lower_o
-        bigger_o = np.count_nonzero(bigger[:, :1])
-        bigger_z = len(bigger) - bigger_o
+        #print(lower)
+        #print(bigger)
+        # calculate lower entropy
+        lower_type_1, lower_type_2 = [], []
+        for ex in lower:
+            if ex[0] == class_c:
+                lower_type_1.append(ex)
+            else:
+                lower_type_2.append(ex)
+        lower_entropy = entropy(len(lower_type_1), len(lower_type_2))
 
-        lower_entropy = entropy(lower_z, lower_o)
-        bigger_entropy = entropy(bigger_z, bigger_o)
-        entropy = (len(lower) * lower_entropy + len(bigger) * bigger_entropy) / (len(lower) + len(bigger))
-        if entropy < min_e:
-            min_e = entropy
+        # calculate bigger entropy
+        bigger_type_1, bigger_type_2 = [], []
+        for ex in bigger:
+            if ex[0] == class_c:
+                bigger_type_1.append(ex)
+            else:
+                bigger_type_2.append(ex)
+        bigger_entropy = entropy(len(bigger_type_1), len(bigger_type_2))
+
+        tmp_entropy = (len(lower) * lower_entropy + len(bigger) * bigger_entropy) / (len(lower) + len(bigger))
+        if tmp_entropy < min_e:
+            min_e = tmp_entropy
             min_val = val
             inner_lower = lower
             inner_bigger = bigger
-        if min_e < min_entropy:
-            best_val = min_val
-            min_entropy = min_e
+    if min_e < min_entropy:
+        best_val = min_val
+        min_entropy = min_e
     return min_entropy, best_val
 
 
-class Node():
+class Node:
     def __init__(self, split_feature, split_val, left, right):
         self.split_feature = split_feature
         # bigger than val -> right, else -> left
@@ -78,6 +89,7 @@ class Node():
 
     def find_class_by_example(self, example):
         if self.classification is None and self.right is None and self.right is None:
+            print("didn't find classification")
             return -1
         if self.classification is not None:
             return self.classification
@@ -94,11 +106,13 @@ class ID3:
         # print(self.exampels)
         # print(self.exampels)
         self.features = self.data_arr[0][1:len(self.data_arr[0]) - 2]
+        # print(len(self.features))
+        # print(self.features)
         # print(self.features)
         self.test = None
         self.classes = self.find_classes()
         root = Node(None, None, None, None)
-        self.tree = self.fit(self.exampels, self.features, None, None, root)
+        self.tree = self.fit(self.exampels, None, None, root)
 
     @staticmethod
     def load_data(filename):
@@ -136,14 +150,15 @@ class ID3:
         # print(majority_class_res)
         return majority_class_res
 
-    def select_feature(self, features, examples):
+    def select_feature(self, features, examples, class_c):
         feature_index = -1
-        max_IG = 0
+        max_IG = 0.0
         split_val = None
         for i in range(len(features)):
-            tmp_IG = information_gain(examples, i)
+            tmp_IG = information_gain(examples, i, class_c)
+
             if tmp_IG[0] < max_IG:
-                max_IG = tmp_IG
+                max_IG = tmp_IG[0]
                 feature_index = i
                 split_val = tmp_IG[1]
             elif tmp_IG == max_IG:
@@ -155,7 +170,7 @@ class ID3:
     def create_sub_tree(self, features, class_c, feature, old_f):
         pass
 
-    def fit(self, examples, features, default, feature, node):
+    def fit(self, examples, default, feature, node):
         if examples is []:
             # means the leaf is empty
             node.classification = default
@@ -168,23 +183,23 @@ class ID3:
             node.classification = class_c
             return node
 
-        feature_f = self.select_feature(features, examples)
+        feature_f = self.select_feature(self.features, examples, class_c)
         node.split_val = feature_f[1]
         node.split_feature = feature_f[0]
-        new_features = []
-        for f in features:
-            if f is not feature_f[0]:
-                new_features.append(f)
-        feature_val = feature_f[1]  # todo need to understand what is it
+        # new_features = []
+        # for f in features:
+        #     if f is not feature_f[0]:
+        #         new_features.append(f)
+        feature_val = feature_f[1]
         left, right = self.split(feature_f, feature_val, examples)
 
         default_left = self.majority_class(left)
         left_node = Node(feature_f, feature_val, None, None)
-        node.left = self.fit(left, new_features, default_left, None, left_node)
+        node.left = self.fit(left, default_left, None, left_node)
 
         default_right = self.majority_class(right)
         right_node = Node(feature_f, feature_val, None, None)
-        node.right = self.fit(right, new_features, default_right, None, right_node)
+        node.right = self.fit(right, default_right, None, right_node)
 
         return node
 
@@ -192,7 +207,6 @@ class ID3:
         left, right = [], []
         for ex in example_group:
             if ex[feature_index + 2] < val:
-                # todo : probably need to do feature index + 1 / 2
                 left.append(ex)
             else:
                 right.append(ex)
@@ -212,3 +226,4 @@ class ID3:
 
 if __name__ == '__main__':
     classifier = ID3()
+    classifier.test("test.csv")
