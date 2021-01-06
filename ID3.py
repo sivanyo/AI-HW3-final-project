@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import KFold
+from matplotlib import pyplot as plt
 
 
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
@@ -104,15 +106,46 @@ def split(feature_index, val, example_group):
     return left, right
 
 
+def majority_class(examples_group):
+    class_1_type = examples_group[0][0]
+    class_1, class_2 = [examples_group[0]], []
+    for i in range(1, len(examples_group)):
+        if examples_group[i][0] is class_1_type:
+            class_1.append(examples_group[i])
+        else:
+            class_2.append(examples_group[i])
+    if len(class_1) >= len(class_2):
+        return class_1_type
+    return class_2[0][0]
+
+
+def experiment():
+    # need to add the k-fold issue
+    m_params_list = [0, 5, 10, 20, 25, 30, 40, 50, 100, 120, 130, 150, 175, 200, 250]
+    successes_rate = []
+    for i in range(len(m_params_list)):
+        classifier_t = ID3("train.csv", m_params_list[i])
+        classifier_t.train()
+        success_rate = classifier_t.test("test.csv")
+        # print(success_rate)
+        successes_rate.append(success_rate)
+    plt.plot(m_params_list, successes_rate)
+    plt.xlabel("M parameter")
+    plt.ylabel("successes rate")
+    plt.show()
+    kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
+
+
 class Node:
-    def __init__(self, one_class_type):
+    def __init__(self, one_class_type, m_param):
         self.split_feature = None
-        # bigger than val -> right, else -> left
+        # bigger than equal val -> right, else -> left
         self.split_val = None
         self.right = None
         self.left = None
         self.one_class_type = one_class_type
         self.classification = None
+        self.m_param = m_param
 
     def find_class_by_example(self, example):
         if self.classification is None and self.right is None and self.right is None:
@@ -124,35 +157,38 @@ class Node:
             return self.left.find_class_by_example(example)
         return self.right.find_class_by_example(example)
 
-    def build(self, examples):
+    def build(self, examples, default):
         if len(examples) == 0:
             print("empty node")
             return
         res, classification = is_consistent(examples)
-
         if res:
             # print("consistent node")
             self.classification = classification
             return
-
+        elif self.m_param is not None and len(examples) < self.m_param:
+            # print(majority_class(examples))
+            self.classification = default
+            return
+        new_default = majority_class(examples)
         self.split_feature, self.split_val, left, right = information_gain(examples, self.one_class_type)
-        self.left = Node(self.one_class_type)
-        self.right = Node(self.one_class_type)
+        self.left = Node(self.one_class_type, self.m_param)
+        self.right = Node(self.one_class_type, self.m_param)
         if len(left) != 0:
-            self.left.build(left)
+            self.left.build(left, new_default)
         if len(right) != 0:
-            self.right.build(right)
+            self.right.build(right, new_default)
 
 
 class ID3:
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, m_param=None):
         self.data_arr = self.load_data(file_name)
         # print(self.data_arr)
         self.examples = self.data_arr[1:]
         # self.test = None
         self.classes = self.find_classes()
-        self.root = Node(self.classes[0])
+        self.root = Node(self.classes[0], m_param)
         self.num_of_features = len(self.examples[0]) - 2
         print("start your training, good luck")
 
@@ -169,7 +205,8 @@ class ID3:
         return classes
 
     def train(self):
-        self.root.build(self.examples)
+        major_class = majority_class(self.examples)
+        self.root.build(self.examples, major_class)
 
     def majority_class(self, examples):
         class_dict = {}
@@ -186,19 +223,25 @@ class ID3:
         return majority_class_res
 
     def test(self, train_filename):
-        print("start your test !!! test score:")
+        print("start your test !!!")
         tester = self.load_data(train_filename)
         right, wrong = 0, 0
         for i in range(len(tester)):
             if self.root.find_class_by_example(tester[i]) == tester[i][0]:
                 right += 1
-        print(right)
-
-        print(right * 100 / (len(tester)))
+        # print("your success rate is:")
+        print(right * 100 / (len(tester)))  # todo : this is the only print that need to appear
+        # print("out of", len(tester), "you are right about", right)
+        return right * 100 / (len(tester))
 
 
 if __name__ == '__main__':
-    classifier = ID3("train.csv")
-    classifier.train()
-    fileName = "test.csv"
-    classifier.test(fileName)
+    # classifier = ID3("train.csv")
+    # classifier.train()
+    # fileName = "test.csv"
+    # classifier.test(fileName)
+    experiment()
+    # classifier = ID3("train.csv")
+    # classifier.train()
+    # fileName = "test.csv"
+    # classifier.test(fileName)
