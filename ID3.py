@@ -5,7 +5,6 @@ import pandas as pd
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
 
 def is_consistent(examples):
-
     if len(examples) == 1:
         example = examples[0]
         class_c = example[1]
@@ -23,7 +22,7 @@ def entropy(x, y):
     if x is 0 or y is 0:
         return 0
     sum = x + y
-    entropy = (((-x/sum) * np.log2(x / sum)) - ((y/sum) * np.log2(y / sum)))
+    entropy = (((-x / sum) * np.log2(x / sum)) - ((y / sum) * np.log2(y / sum)))
     # print(entropy)
     # print(entropy)
     return entropy
@@ -52,10 +51,10 @@ def information_gain(examples_group, class_c):
                 final_values.append((float(values[j]) + float(values[j + 1])) / 2)
         tmp_h, tmp_l = [], []
         for j in range(len(final_values)):
-            #print(j)
+            # print(j)
             lower, higher = [], []
             for ex in examples_group:
-                #print(ex[i]< final_values[j])
+                # print(ex[i]< final_values[j])
                 if float(ex[i]) < final_values[j]:
                     lower.append(ex)
                 else:
@@ -85,7 +84,7 @@ def information_gain(examples_group, class_c):
                 tmp_l = lower
         # print("tmp min entro")
         # print(tmp_min_entro)
-        if tmp_min_entro < min_entro:
+        if tmp_min_entro <= min_entro:
             min_entro = tmp_min_entro
             split_val = tmp_split_val
             selected_feature = i
@@ -147,8 +146,8 @@ class Node:
 
 class ID3:
 
-    def __init__(self):
-        self.data_arr = self.load_data('train.csv')
+    def __init__(self, file_name):
+        self.data_arr = self.load_data(file_name)
         # print(self.data_arr)
         self.examples = self.data_arr[1:]
         # self.test = None
@@ -189,19 +188,17 @@ class ID3:
     def test(self, train_filename):
         print("start your test !!! test score:")
         tester = self.load_data(train_filename)
-        examples = tester[1:]
         right, wrong = 0, 0
-        for i in range(len(examples)):
-            if self.root.find_class_by_example(examples[i]) is tester[i + 1][0]:
+        for i in range(len(tester)):
+            if self.root.find_class_by_example(tester[i]) == tester[i][0]:
                 right += 1
-            else:
-                wrong += 1
+        print(right)
 
-        print(right * 100 / (right + wrong))
+        print(right * 100 / (len(tester)))
 
 
 if __name__ == '__main__':
-    classifier = ID3()
+    classifier = ID3("train.csv")
     classifier.train()
     fileName = "test.csv"
     classifier.test(fileName)
