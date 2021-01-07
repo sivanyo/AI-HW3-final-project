@@ -1,18 +1,11 @@
 import numpy as np
-import pandas as pd
+from utils import load_data
+from utils import majority_class
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
 
+
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
-
-
-def load_data(filename):
-    """this function gets a csv file name as a string and return a list of lists,
-    each inner list represent a line in the file
-    """
-    data = pd.read_csv(filename, sep=',')
-    return data.values.tolist()
-
 
 def is_consistent(examples):
     """this function receives a set of examples and determine if they are all with
@@ -107,31 +100,6 @@ def information_gain(examples_group, class_c):
             lower_final = tmp_l
     return selected_feature, split_val, lower_final, higher_final
 
-# def split(feature_index, val, example_group):
-#     left, right = [], []
-#     # print(feature_index)
-#     for ex in example_group:
-#         if ex[feature_index] < val:
-#             left.append(ex)
-#         else:
-#             right.append(ex)
-#     return left, right
-
-
-def majority_class(examples_group):
-    """this function gets a set of examples and returns the most common label
-    in this set"""
-    class_1_type = examples_group[0][0]
-    class_1, class_2 = [examples_group[0]], []
-    for i in range(1, len(examples_group)):
-        if examples_group[i][0] is class_1_type:
-            class_1.append(examples_group[i])
-        else:
-            class_2.append(examples_group[i])
-    if len(class_1) >= len(class_2):
-        return class_1_type
-    return class_2[0][0]
-
 
 def experiment(file_name):
     """this function is the experiment
@@ -166,6 +134,7 @@ def experiment(file_name):
 class Node:
     """this class represent a binary tree
     for the decision tree"""
+
     def __init__(self, one_class_type, m_param):
         self.split_feature = None
         # bigger than equal val -> right, else -> left
@@ -268,13 +237,13 @@ class ID3:
 
 
 if __name__ == '__main__':
-    # data = load_data("train.csv")
-    # classifier = ID3(data)
-    # classifier.train()
-    # tester = load_data("test.csv")
-    # classifier.test(tester)
+    data = load_data("train.csv")
+    classifier = ID3(data)
+    classifier.train()
+    tester = load_data("test.csv")
+    classifier.test(tester)
 
-    experiment("train.csv")
+    # experiment("train.csv")
 
     # classifier = ID3("train.csv")
     # classifier.train()
