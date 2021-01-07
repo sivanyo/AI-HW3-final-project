@@ -12,7 +12,7 @@ def load_data(filename):
 def majority_class(examples_group):
     """this function gets a set of examples and returns the most common label
     in this set"""
-    print(examples_group)
+    # print(examples_group)
     class_1_type = examples_group[0][0]
     class_1, class_2 = [examples_group[0]], []
     for i in range(1, len(examples_group)):
