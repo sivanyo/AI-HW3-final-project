@@ -98,6 +98,9 @@ class KNN:
         return KNN_list
 
     def classify(self, example):
+        """corner case : k is bigger than the data set size"""
+        if len(self.data) <= self.k_param:
+            return majority_class(self.data)
         KNN_list = self.find_KNN_examples(example)
         # print(KNN_list)
         classify = majority_class(KNN_list)
