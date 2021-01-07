@@ -3,10 +3,20 @@ import pandas as pd
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
 
-
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
 
+
+def load_data(filename):
+    """this function gets a csv file name as a string and return a list of lists,
+    each inner list represent a line in the file
+    """
+    data = pd.read_csv(filename, sep=',')
+    return data.values.tolist()
+
+
 def is_consistent(examples):
+    """this function receives a set of examples and determine if they are all with
+    the same label, if they are it returns the label"""
     if len(examples) == 1:
         example = examples[0]
         class_c = example[1]
@@ -21,6 +31,7 @@ def is_consistent(examples):
 
 
 def entropy(x, y):
+    """this function calculate the entropy of two integers"""
     if x is 0 or y is 0:
         return 0
     sum = x + y
@@ -31,7 +42,9 @@ def entropy(x, y):
 
 
 def information_gain(examples_group, class_c):
-    # maxIG iff min entro
+    """maxIG iff min entropy
+    this function calculate the best IG for node and return the selected feature,
+     the split val, and the two new sets of examples"""
     size = len(examples_group)
     min_entro = float('inf')
     selected_feature = -1
@@ -94,19 +107,20 @@ def information_gain(examples_group, class_c):
             lower_final = tmp_l
     return selected_feature, split_val, lower_final, higher_final
 
-
-def split(feature_index, val, example_group):
-    left, right = [], []
-    # print(feature_index)
-    for ex in example_group:
-        if ex[feature_index] < val:
-            left.append(ex)
-        else:
-            right.append(ex)
-    return left, right
+# def split(feature_index, val, example_group):
+#     left, right = [], []
+#     # print(feature_index)
+#     for ex in example_group:
+#         if ex[feature_index] < val:
+#             left.append(ex)
+#         else:
+#             right.append(ex)
+#     return left, right
 
 
 def majority_class(examples_group):
+    """this function gets a set of examples and returns the most common label
+    in this set"""
     class_1_type = examples_group[0][0]
     class_1, class_2 = [examples_group[0]], []
     for i in range(1, len(examples_group)):
@@ -119,24 +133,39 @@ def majority_class(examples_group):
     return class_2[0][0]
 
 
-def experiment():
+def experiment(file_name):
+    """this function is the experiment
+    only need to add a call at the main function - experiment("train.csv")
+    and it will run :)
+    """
     # need to add the k-fold issue
     m_params_list = [0, 5, 10, 20, 25, 30, 40, 50, 100, 120, 130, 150, 175, 200, 250]
     successes_rate = []
+    kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
+    data = load_data(file_name)
     for i in range(len(m_params_list)):
-        classifier_t = ID3("train.csv", m_params_list[i])
-        classifier_t.train()
-        success_rate = classifier_t.test("test.csv")
-        # print(success_rate)
-        successes_rate.append(success_rate)
+        accuracy = []
+        for train_index, test_index in kf.split(data):
+            train_data, test_data = [], []
+            for j in train_index:
+                train_data.append(data[j])
+            for j in test_index:
+                test_data.append(data[j])
+            classifier_t = ID3(train_data, m_params_list[i])
+            classifier_t.train()
+            success_rate = classifier_t.test(test_data)
+            # print(success_rate)
+            accuracy.append(success_rate)
+        successes_rate.append(sum(accuracy) / len(accuracy))
     plt.plot(m_params_list, successes_rate)
     plt.xlabel("M parameter")
     plt.ylabel("successes rate")
     plt.show()
-    kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
 
 
 class Node:
+    """this class represent a binary tree
+    for the decision tree"""
     def __init__(self, one_class_type, m_param):
         self.split_feature = None
         # bigger than equal val -> right, else -> left
@@ -149,7 +178,7 @@ class Node:
 
     def find_class_by_example(self, example):
         if self.classification is None and self.right is None and self.right is None:
-            print("didn't find classification")
+            # print("didn't find classification")
             return -1
         if self.classification is not None:
             return self.classification
@@ -158,8 +187,12 @@ class Node:
         return self.right.find_class_by_example(example)
 
     def build(self, examples, default):
+        """this function called by train function in ID3
+        it builds the decision tree using the information gain function.
+        finally, it returns a decision tree in which each node that is not a leaf we have
+        feature and split val, and each leaf holds a label (classification)"""
         if len(examples) == 0:
-            print("empty node")
+            # print("empty node")
             return
         res, classification = is_consistent(examples)
         if res:
@@ -182,20 +215,15 @@ class Node:
 
 class ID3:
 
-    def __init__(self, file_name, m_param=None):
-        self.data_arr = self.load_data(file_name)
+    def __init__(self, data_arr, m_param=None):
+        self.data_arr = data_arr
         # print(self.data_arr)
         self.examples = self.data_arr[1:]
         # self.test = None
         self.classes = self.find_classes()
         self.root = Node(self.classes[0], m_param)
         self.num_of_features = len(self.examples[0]) - 2
-        print("start your training, good luck")
-
-    @staticmethod
-    def load_data(filename):
-        data = pd.read_csv(filename, sep=',')
-        return data.values.tolist()
+        # print("start your training, good luck")
 
     def find_classes(self):
         classes = []
@@ -205,6 +233,8 @@ class ID3:
         return classes
 
     def train(self):
+        """this function calls to the function that build the decision tree,
+        and saves it in the classifier root"""
         major_class = majority_class(self.examples)
         self.root.build(self.examples, major_class)
 
@@ -222,9 +252,11 @@ class ID3:
         # print(majority_class_res)
         return majority_class_res
 
-    def test(self, train_filename):
-        print("start your test !!!")
-        tester = self.load_data(train_filename)
+    def test(self, tester):
+        """this test receives a set of data, and test the classifier
+        it prints the success rate"""
+        # print("start your test !!!")
+        tester = tester
         right, wrong = 0, 0
         for i in range(len(tester)):
             if self.root.find_class_by_example(tester[i]) == tester[i][0]:
@@ -236,11 +268,14 @@ class ID3:
 
 
 if __name__ == '__main__':
-    # classifier = ID3("train.csv")
+    # data = load_data("train.csv")
+    # classifier = ID3(data)
     # classifier.train()
-    # fileName = "test.csv"
-    # classifier.test(fileName)
-    experiment()
+    # tester = load_data("test.csv")
+    # classifier.test(tester)
+
+    experiment("train.csv")
+
     # classifier = ID3("train.csv")
     # classifier.train()
     # fileName = "test.csv"
