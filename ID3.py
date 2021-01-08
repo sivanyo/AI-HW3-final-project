@@ -59,10 +59,8 @@ def information_gain(examples_group, class_c):
                 final_values.append((float(values[j]) + float(values[j + 1])) / 2)
         tmp_h, tmp_l = [], []
         for j in range(len(final_values)):
-            # print(j)
             lower, higher = [], []
             for ex in examples_group:
-                # print(ex[i]< final_values[j])
                 if float(ex[i]) < final_values[j]:
                     lower.append(ex)
                 else:
@@ -84,14 +82,11 @@ def information_gain(examples_group, class_c):
                     higher_type_2.append(ex)
             higher_entropy = entropy(len(higher_type_1), len(higher_type_2))
             tmp_entro = (len(lower) * lower_entropy + len(higher) * higher_entropy) / size
-            # print(tmp_entro)
             if tmp_entro < tmp_min_entro:
                 tmp_min_entro = tmp_entro
                 tmp_split_val = final_values[j]
                 tmp_h = higher
                 tmp_l = lower
-        # print("tmp min entro")
-        # print(tmp_min_entro)
         if tmp_min_entro <= min_entro:
             min_entro = tmp_min_entro
             split_val = tmp_split_val
@@ -99,6 +94,12 @@ def information_gain(examples_group, class_c):
             higher_final = tmp_h
             lower_final = tmp_l
     return selected_feature, split_val, lower_final, higher_final
+
+
+def lost(FP, FN, tester_size):
+    # print("im here")
+    loss = (0.1 * FP + FN) / tester_size
+    return loss
 
 
 def experiment(file_name):
@@ -221,19 +222,37 @@ class ID3:
         # print(majority_class_res)
         return majority_class_res
 
-    def test(self, tester):
+    def test(self, test_group):
         """this test receives a set of data, and test the classifier
         it prints the success rate"""
         # print("start your test !!!")
-        tester = tester
+        test_group = test_group
         right, wrong = 0, 0
-        for i in range(len(tester)):
-            if self.root.find_class_by_example(tester[i]) == tester[i][0]:
+        for i in range(len(test_group)):
+            if self.root.find_class_by_example(test_group[i]) == test_group[i][0]:
                 right += 1
         # print("your success rate is:")
-        print(right * 100 / (len(tester)))  # todo : this is the only print that need to appear
+        print(right * 100 / (len(test_group)))  # todo : this is the only print that need to appear
         # print("out of", len(tester), "you are right about", right)
-        return right * 100 / (len(tester))
+        return right * 100 / (len(test_group))
+
+    def test_by_loss(self, test_group):
+        """M - sick, B - healthy
+        fp += 1 iff test_group[i][0] = B and classify(test_group[i] = M
+        fn += 1 iff test_group[i][0] = M and classify(test+group[i] = B"""
+        # print("im here")
+        test_group = test_group
+        FP, FN = 0, 0
+        size = len(test_group)
+        for i in range(size):
+            if self.root.find_class_by_example(test_group[i]) == 'M' and test_group[i][0] == 'B':
+                FP += 1
+            elif self.root.find_class_by_example(test_group[i]) == 'B' and test_group[i][0] == 'M':
+                FN += 1
+        loss = lost(FP, FN, size)
+        # print(FP, FN)
+        #print(loss)
+        return loss
 
 
 if __name__ == '__main__':
@@ -242,6 +261,11 @@ if __name__ == '__main__':
     classifier.train()
     tester = load_data("test.csv")
     classifier.test(tester)
+    # loss = classifier.test_by_loss(tester)
+    # print(loss)
+    # print("now trying to minimize loss")
+    # minimize_loss("train.csv")
+
 
     # experiment("train.csv")
 
