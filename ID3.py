@@ -4,6 +4,7 @@ from utils import Node
 from utils import lost
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
+from utils import information_gain
 
 
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
@@ -13,7 +14,7 @@ def experiment(file_name):
     and it will run :)
     """
     # need to add the k-fold issue
-    m_params_list = [0, 5, 10, 20, 25, 30, 40, 50, 100, 120, 130, 150, 175, 200, 250]
+    m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 130, 150, 175, 200, 250]
     successes_rate = []
     kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
     data = load_data(file_name)
@@ -39,14 +40,17 @@ def experiment(file_name):
 
 class ID3:
 
-    def __init__(self, data_arr, m_param=None):
+    def __init__(self, data_arr, m_param=None, information_gain_func=information_gain):
         self.data_arr = data_arr
+
         # print(self.data_arr)
-        self.examples = self.data_arr[1:]
+        self.examples = data_arr
+        # print(self.examples)
         # self.test = None
         self.classes = self.find_classes()
-        self.root = Node(self.classes[0], m_param)
-        self.num_of_features = len(self.examples[0]) - 2
+        self.root = Node(m_param)
+        self.information_gain_func = information_gain_func
+        #self.num_of_features = len(self.examples[0]) - 2
         # print("start your training, good luck")
 
     def find_classes(self):
@@ -60,7 +64,7 @@ class ID3:
         """this function calls to the function that build the decision tree,
         and saves it in the classifier root"""
         major_class = majority_class(self.examples)
-        self.root.build(self.examples, major_class)
+        self.root.build(self.examples, major_class, self.information_gain_func)
 
     def majority_class(self, examples):
         class_dict = {}
@@ -86,9 +90,9 @@ class ID3:
             if self.root.find_class_by_example(test_group[i]) == test_group[i][0]:
                 right += 1
         # print("your success rate is:")
-        print(right * 100 / (len(test_group)))  # todo : this is the only print that need to appear
+        print(right / (len(test_group)))  # todo : this is the only print that need to appear
         # print("out of", len(tester), "you are right about", right)
-        return right * 100 / (len(test_group))
+        return right / (len(test_group))
 
     def test_by_loss(self, test_group):
         """M - sick, B - healthy
@@ -115,13 +119,13 @@ if __name__ == '__main__':
     classifier.train()
     tester = load_data("test.csv")
     classifier.test(tester)
-    # loss = classifier.test_by_loss(tester)
-    # print(loss)
+    #loss = classifier.test_by_loss(tester)
+    #print(loss)
     # print("now trying to minimize loss")
     # minimize_loss("train.csv")
 
 
-    experiment("train.csv")
+    # experiment("train.csv")
 
     # classifier = ID3("train.csv")
     # classifier.train()

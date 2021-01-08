@@ -65,17 +65,40 @@ class KNNForest:
         for i in range(len(test_data)):
             if self.classify_example(test_data[i], k_param) is test_data[i][0]:
                 right += 1
-        print(right * 100 / (len(test_data)))
-        return right * 100 / (len(test_data))
+        # print(right / (len(test_data)))
+        return right / (len(test_data))
+
+
+def experiment(train_data, test_data):
+    n_params = []
+    for i in range(5, 100, 5):
+        n_params.append(i)
+    p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
+    k_params = []
+    for i in range(3, 99, 3):
+        k_params.append(i)
+    success_rate = []
+    for n in n_params:
+        for k in k_params:
+            if k >= n:
+                break
+            for p in p_params:
+                forest = KNNForest(n)
+                forest.train(train_data, p)
+                accuracy = forest.test(test_data, k)
+                success_rate.append((accuracy, (n, k, p)))
+    success_rate.sort(key=lambda x: x[0])
+    return success_rate[0][1]
 
 
 if __name__ == '__main__':
     data = load_data("train.csv")
-    classifier = KNNForest(100)
-    classifier.train(data, 0.5)
+    # classifier = KNNForest(100)
+    #classifier.train(data, 0.5)
     tester = load_data("test.csv")
-    classifier.test(tester, 10)
-
+    #classifier.test(tester, 10)
+    n, k, p = experiment(data, tester)
+    print(n, k, p)
 
 
 
