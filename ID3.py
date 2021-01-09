@@ -119,13 +119,13 @@ if __name__ == '__main__':
     classifier.train()
     tester = load_data("test.csv")
     classifier.test(tester)
-    #loss = classifier.test_by_loss(tester)
-    #print(loss)
-    # print("now trying to minimize loss")
-    # minimize_loss("train.csv")
+    loss = classifier.test_by_loss(tester)
+    print(loss)
+    # # print("now trying to minimize loss")
+    # # minimize_loss("train.csv")
 
 
-    # experiment("train.csv")
+    experiment("train.csv")
 
     # classifier = ID3("train.csv")
     # classifier.train()

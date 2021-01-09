@@ -236,9 +236,8 @@ class Node:
         self.classification = None
         self.m_param = m_param
 
-
     def find_class_by_example(self, example):
-        if self.classification is None and self.right is None and self.right is None:
+        if self.classification is None and self.right is None and self.left is None:
             # print("didn't find classification")
             return -1
         if self.classification is not None:

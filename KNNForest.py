@@ -71,11 +71,11 @@ class KNNForest:
 
 def experiment(train_data, test_data):
     n_params = []
-    for i in range(5, 100, 5):
+    for i in range(30, 100, 10):
         n_params.append(i)
     p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
     k_params = []
-    for i in range(3, 99, 3):
+    for i in range(3, 99, 15):
         k_params.append(i)
     success_rate = []
     for n in n_params:
@@ -83,6 +83,7 @@ def experiment(train_data, test_data):
             if k >= n:
                 break
             for p in p_params:
+                print("start run")
                 forest = KNNForest(n)
                 forest.train(train_data, p)
                 accuracy = forest.test(test_data, k)
@@ -93,12 +94,14 @@ def experiment(train_data, test_data):
 
 if __name__ == '__main__':
     data = load_data("train.csv")
-    # classifier = KNNForest(100)
-    #classifier.train(data, 0.5)
+    classifier = KNNForest(60)
+    classifier.train(data, 0.69)
     tester = load_data("test.csv")
-    #classifier.test(tester, 10)
-    n, k, p = experiment(data, tester)
-    print(n, k, p)
+    accuracy = classifier.test(tester, 50)
+    print(accuracy)
+    # n, k, p = experiment(data, tester)
+    # print(n, k, p)
+    """after performing the expiriment the best (n, k, p) are (5, 3, 0.6)"""
 
 
 

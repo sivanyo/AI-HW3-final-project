@@ -15,7 +15,7 @@ class CostSensitiveID3(ID3):
     """this is 2 variables function - the dominant one is FN, 
     so we will prefer to classify a bounded person as sick """
     def minimize_loss(self, file_name):
-        kf = KFold(n_splits=3, shuffle=True, random_state=318981586)
+        kf = KFold(n_splits=10, shuffle=True, random_state=318981586)
         data = load_data(file_name)
         classifiers = []
         for train_index, test_index in kf.split(data):
@@ -30,6 +30,7 @@ class CostSensitiveID3(ID3):
             classifiers.append((classifier, loss))
 
         classifiers.sort(key=lambda x: x[1])
+        print(classifiers)
         # print(classifiers)
         selected_classifier = classifiers[0][0]
         data = load_data(file_name)
