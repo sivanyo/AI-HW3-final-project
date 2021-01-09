@@ -26,11 +26,7 @@ class CostSensitiveID3(ID3):
             classifiers.append((classifier, loss))
 
         classifiers.sort(key=lambda x: x[1])
-        #print(classifiers)
-        # print(classifiers)
         selected_classifier = classifiers[0][0]
-        data = load_data(file_name)
-        #selected_classifier = CostSensitiveID3(data, information_gain_for_cost_sensitive)
         test_group = load_data("test.csv")
         loss = selected_classifier.test_by_loss(test_group)
         print(loss)

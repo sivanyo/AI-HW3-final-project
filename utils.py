@@ -8,7 +8,6 @@ HEALTHY = 'B'
 def euclidean_distance(example_1, example_2):
     squares_sum = 0.0
     for i in range(1, len(example_2)):
-        # print(i)
         squares_sum += ((example_1[i]) - float(example_2[i])) ** 2
     e_distance = np.sqrt(squares_sum)
     return e_distance
@@ -39,37 +38,31 @@ def load_data(filename):
 def majority_class(examples_group):
     """this function gets a set of examples and returns the most common label
     in this set"""
-    #print(examples_group)
-    # print(examples_group)
-    class_1_type = examples_group[0][0]
-    class_1, class_2 = [examples_group[0]], []
-    for i in range(1, len(examples_group)):
-        if examples_group[i][0] is class_1_type:
-            class_1.append(examples_group[i])
+    class_sick, class_health = [], []
+    for i in range(len(examples_group)):
+        if examples_group[i][0] is SICK:
+            class_sick.append(examples_group[i])
         else:
-            class_2.append(examples_group[i])
-    if len(class_1) >= len(class_2):
-        return class_1_type
-    return class_2[0][0]
+            class_health.append(examples_group[i])
+    if len(class_sick) >= len(class_health):
+        return SICK
+    return HEALTHY
 
 
 def majority_class_for_knn(examples_group):
     """this function gets a set of examples and returns the most common label
     in this set"""
-    #print(examples_group)
-    # print(examples_group)
-    class_1_type = examples_group[0][0]
-    class_1, class_2 = [examples_group[0]], []
-    for i in range(1, len(examples_group)):
-        if examples_group[i][0] is class_1_type:
-            class_1.append(examples_group[i])
+    class_sick, class_healthy = [], []
+    for i in range(len(examples_group)):
+        if examples_group[i][0] is SICK:
+            class_sick.append(examples_group[i])
         else:
-            class_2.append(examples_group[i])
-    if len(class_1) == len(class_2):
+            class_healthy.append(examples_group[i])
+    if len(class_sick) == len(class_healthy):
         return None
-    if len(class_1) >= len(class_2):
-        return class_1_type
-    return class_2[0][0]
+    if len(class_sick) > len(class_healthy):
+        return SICK
+    return HEALTHY
 
 
 def is_consistent(examples):
@@ -94,8 +87,6 @@ def entropy(x, y):
         return 0
     sum = x + y
     entropy = (((-x / sum) * np.log2(x / sum)) - ((y / sum) * np.log2(y / sum)))
-    # print(entropy)
-    # print(entropy)
     return entropy
 
 
@@ -109,7 +100,6 @@ def information_gain(examples_group):
     higher_final, lower_final = [], []
     split_val = None
     for i in range(1, len(examples_group[0])):
-        # print(i)
         tmp_min_entro = float('inf')
         tmp_split_val = None
         values = []
@@ -159,7 +149,6 @@ def information_gain(examples_group):
             selected_feature = i
             higher_final = tmp_h
             lower_final = tmp_l
-    # print("im here")
     return selected_feature, split_val, lower_final, higher_final
 
 
@@ -173,7 +162,6 @@ def information_gain_for_cost_sensitive(examples_group):
     higher_final, lower_final = [], []
     split_val = None
     for i in range(1, len(examples_group[0])):
-        # print(i)
         tmp_min_entro = float('inf')
         tmp_split_val = None
         values = []
@@ -245,7 +233,6 @@ def information_gain_for_improved_knn(examples_group):
     higher_final, lower_final = [], []
     split_val = None
     for i in range(1, len(examples_group[0])):
-        # print(i)
         tmp_min_entro = float('inf')
         tmp_split_val = None
         values = []
@@ -301,7 +288,6 @@ def information_gain_for_improved_knn(examples_group):
 
 
 def lost(FP, FN, tester_size):
-    # print("im here")
     loss = (0.1 * FP + FN) / tester_size
     return loss
 
@@ -313,7 +299,6 @@ def find_KNN_examples(data, example, k_param):
         height = data[i][1]
         distance_list.append((e_distance, height, data[i]))
     distance_list.sort(key=lambda x: x[0])
-    # print(distance_list)
     nearest = []
     for i in range(k_param):
         nearest.append(distance_list[i])
@@ -323,12 +308,10 @@ def find_KNN_examples(data, example, k_param):
 def find_KNN_examples_for_improved(data, example, k_param):
     distance_list = []
     for i in range(len(data)):
-
         e_distance_for_improved = euclidean_distance_for_improved(example, data[i][0])
         height = data[i][1]
         distance_list.append((e_distance_for_improved, height, data[i]))
-    distance_list.sort(key=lambda x: x[0] * 0.5 + x[1] * 0.5)
-    # print(distance_list)
+    distance_list.sort(key=lambda x: x[0] * 0.9 + x[1] * 0.1)
     nearest = []
     for i in range(k_param):
         nearest.append(distance_list[i])
@@ -370,7 +353,6 @@ class Node:
 
     def find_class_by_example(self, example):
         if self.classification is None and self.right is None and self.left is None:
-            # print("didn't find classification")
             return -1
         if self.classification is not None:
             return self.classification
@@ -384,15 +366,12 @@ class Node:
         finally, it returns a decision tree in which each node that is not a leaf we have
         feature and split val, and each leaf holds a label (classification)"""
         if len(examples) == 0:
-            # print("empty node")
             return
         res, classification = is_consistent(examples)
         if res:
-            # print("consistent node")
             self.classification = classification
             return
         elif self.m_param is not None and len(examples) < self.m_param:
-            # print(majority_class(examples))
             self.classification = default
             return
         new_default = majority_class(examples)
