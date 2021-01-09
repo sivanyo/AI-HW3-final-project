@@ -6,6 +6,11 @@ from utils import find_KNN_examples
 from random import choices
 from utils import information_gain
 from utils import majority_class_for_knn
+from utils import minmax_normalization
+
+"""this algo prefer trees with low height
+it also check which features are relevant and only than calc the centroid
+it is also normalize all the features"""
 
 
 def calc_centroid(examples):
@@ -18,6 +23,32 @@ def calc_centroid(examples):
         average = sum / size
         centroid.append(average)
     # print(centroid)
+    return centroid
+
+
+def calc_centroid_improve(examples, relevant_features):
+    centroid = []
+    size = len(examples)
+    min_max_vecctor = []
+    for i in range(1, len(examples[0])):
+        local_min = float('inf')
+        local_max = float('-inf')
+        for j in range(len(examples)):
+            if examples[j][i] < local_min:
+                local_min = examples[j][i]
+            if examples[j][i] > local_max:
+                local_max = examples[j][i]
+        min_max_vecctor.append((local_min, local_max))
+    for i in range(1, len(examples[0])):
+        if i not in relevant_features:
+            centroid.append(0.0)
+        else:
+            sum = 0.0
+            for j in range(len(examples)):
+                # print(j)
+                sum += minmax_normalization(examples[j][i], min_max_vecctor[i][0], min_max_vecctor[i][1])
+            average = sum / size
+            centroid.append(average)
     return centroid
 
 
@@ -35,8 +66,10 @@ class KNNForest:
             random_examples = choices(data, k=int(size))
             classifier = ID3(random_examples, None, information_gain, majority_class_for_knn)
             classifier.train()
-            centroid = calc_centroid(random_examples)
-            decisions_trees.append((centroid, classifier))
+            relevant = classifier.root.find_features(classifier.num_of_features)
+            centroid = calc_centroid_improve(random_examples, relevant)
+            height = classifier.root.calc_height()
+            decisions_trees.append((centroid, height, classifier))
         self.decision_trees = decisions_trees
 
     def classify_example(self, example, k_param):
@@ -48,7 +81,8 @@ class KNNForest:
         k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
-            classification = k_decisions_tree[i][1][1].root.find_class_by_example(example)
+            # print(k_decisions_tree[i])
+            classification = k_decisions_tree[i][2][2].root.find_class_by_example(example)
             if classification is SICK:
                 sick_num += 1
             else:
@@ -76,8 +110,4 @@ if __name__ == '__main__':
     # n, k, p = experiment(data, tester)
     # print(n, k, p)
     """after performing the experiment the best (n, k, p) are (60, 50, 0.69)"""
-
-
-
-
 

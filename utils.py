@@ -14,6 +14,20 @@ def euclidean_distance(example_1, example_2):
     return e_distance
 
 
+def euclidean_distance_for_improved(example_1, example_2):
+    squares_sum = 0.0
+    for i in range(1, len(example_2)):
+        if example_2[i] != 0.0:
+            squares_sum += ((example_1[i]) - float(example_2[i])) ** 2
+    e_distance = np.sqrt(squares_sum)
+    return e_distance
+
+
+def minmax_normalization(value, min_val, max_val):
+    normalized_val = float((float(value) - float(min_val)) / (float(max_val) - float(min_val)))
+    return normalized_val
+
+
 def load_data(filename):
     """this function gets a csv file name as a string and return a list of lists,
     each inner list represent a line in the file
@@ -296,14 +310,40 @@ def find_KNN_examples(data, example, k_param):
     distance_list = []
     for i in range(len(data)):
         e_distance = euclidean_distance(example, data[i][0])
-        #print(e_distance)
-        distance_list.append((e_distance, data[i]))
+        height = data[i][1]
+        distance_list.append((e_distance, height, data[i]))
     distance_list.sort(key=lambda x: x[0])
     # print(distance_list)
     nearest = []
     for i in range(k_param):
         nearest.append(distance_list[i])
     return nearest
+
+
+def find_KNN_examples_for_improved(data, example, k_param):
+    distance_list = []
+    for i in range(len(data)):
+
+        e_distance_for_improved = euclidean_distance_for_improved(example, data[i][0])
+        height = data[i][1]
+        distance_list.append((e_distance_for_improved, height, data[i]))
+    distance_list.sort(key=lambda x: x[0] * 0.5 + x[1] * 0.5)
+    # print(distance_list)
+    nearest = []
+    for i in range(k_param):
+        nearest.append(distance_list[i])
+    return nearest
+
+
+def find_relevant_features(decision_tree, features_num):
+    """this function will go over the tree, and will return all the indexes that will
+    effect the decisions"""
+    relevant = []
+
+    for i in range(1, features_num):
+        if i in decision_tree.find_features(i):
+            relevant.append(i)
+    return relevant
 
 
 class Node:
@@ -363,6 +403,24 @@ class Node:
             self.left.build(left, new_default, information_gain_func)
         if len(right) != 0:
             self.right.build(right, new_default, information_gain_func)
+
+    def find_features(self, features_num):
+        relevant = []
+        for index in range(1, features_num):
+            if self.is_exist(index):
+                relevant.append(index)
+        return relevant
+
+    def is_exist(self, index):
+        if self.split_feature == index:
+            return True
+        if self.right is not None and self.left is not None:
+            return self.right.find_features(index) or self.left.find_features(index)
+        if self.right is not None:
+            return self.right.find_features(index)
+        if self.left is not None:
+            return self.left.find_features(index)
+        return False
 
 
 

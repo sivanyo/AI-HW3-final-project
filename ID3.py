@@ -54,7 +54,7 @@ class ID3:
         self.root = Node(m_param)
         self.information_gain_func = information_gain_func
         self.majority_class_func = majority_class_func
-        #self.num_of_features = len(self.examples[0]) - 2
+        self.num_of_features = len(self.examples[0]) - 1
         # print("start your training, good luck")
 
     def train(self):

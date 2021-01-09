@@ -46,7 +46,7 @@ class KNNForest:
         k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
-            classification = k_decisions_tree[i][1][1].root.find_class_by_example(example)
+            classification = k_decisions_tree[i][2][1].root.find_class_by_example(example)
             if classification is SICK:
                 sick_num += 1
             else:
