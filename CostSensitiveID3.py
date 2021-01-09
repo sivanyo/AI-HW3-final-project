@@ -2,10 +2,6 @@ from ID3 import ID3
 from utils import load_data
 from sklearn.model_selection import KFold
 from utils import information_gain_for_cost_sensitive
-from utils import SICK
-import numpy as np
-from utils import entropy
-from utils import majority_class
 
 
 class CostSensitiveID3(ID3):
@@ -15,7 +11,7 @@ class CostSensitiveID3(ID3):
     """this is 2 variables function - the dominant one is FN, 
     so we will prefer to classify a bounded person as sick """
     def minimize_loss(self, file_name):
-        kf = KFold(n_splits=10, shuffle=True, random_state=318981586)
+        kf = KFold(n_splits=2, shuffle=True, random_state=318981586)
         data = load_data(file_name)
         classifiers = []
         for train_index, test_index in kf.split(data):
@@ -30,11 +26,11 @@ class CostSensitiveID3(ID3):
             classifiers.append((classifier, loss))
 
         classifiers.sort(key=lambda x: x[1])
-        print(classifiers)
+        #print(classifiers)
         # print(classifiers)
         selected_classifier = classifiers[0][0]
         data = load_data(file_name)
-        selected_classifier = CostSensitiveID3(data, information_gain_for_cost_sensitive)
+        #selected_classifier = CostSensitiveID3(data, information_gain_for_cost_sensitive)
         test_group = load_data("test.csv")
         loss = selected_classifier.test_by_loss(test_group)
         print(loss)

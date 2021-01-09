@@ -4,6 +4,8 @@ from utils import SICK
 from utils import HEALTHY
 from utils import find_KNN_examples
 from random import choices
+from utils import information_gain
+from utils import majority_class_for_knn
 
 
 def calc_centroid(examples):
@@ -31,7 +33,7 @@ class KNNForest:
         for i in range(self.n_param):
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
-            classifier = ID3(random_examples)
+            classifier = ID3(random_examples, None, information_gain, majority_class_for_knn)
             classifier.train()
             centroid = calc_centroid(random_examples)
             decisions_trees.append((centroid, classifier))
@@ -62,29 +64,6 @@ class KNNForest:
                 right += 1
         # print(right / (len(test_data)))
         return right / (len(test_data))
-
-
-def experiment(train_data, test_data):
-    n_params = []
-    for i in range(30, 100, 10):
-        n_params.append(i)
-    p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
-    k_params = []
-    for i in range(3, 99, 15):
-        k_params.append(i)
-    success_rate = []
-    for n in n_params:
-        for k in k_params:
-            if k >= n:
-                break
-            for p in p_params:
-                print("start run")
-                forest = KNNForest(n)
-                forest.train(train_data, p)
-                accuracy = forest.test(test_data, k)
-                success_rate.append((accuracy, (n, k, p)))
-    success_rate.sort(key=lambda x: x[0])
-    return success_rate[0][1]
 
 
 if __name__ == '__main__':

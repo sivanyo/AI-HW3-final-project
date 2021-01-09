@@ -1,10 +1,12 @@
 from utils import load_data
-from utils import majority_class
+from utils import SICK
+from utils import HEALTHY
 from utils import Node
 from utils import lost
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
 from utils import information_gain
+from utils import majority_class
 
 
 # example e[0]- class, e[1]-e[last] : features results, e[feature_index] -> e[feature_index+2]
@@ -40,45 +42,26 @@ def experiment(file_name):
 
 class ID3:
 
-    def __init__(self, data_arr, m_param=None, information_gain_func=information_gain):
+    def __init__(self, data_arr, m_param=None, information_gain_func=information_gain,
+                 majority_class_func=majority_class):
         self.data_arr = data_arr
 
         # print(self.data_arr)
         self.examples = data_arr
         # print(self.examples)
         # self.test = None
-        self.classes = self.find_classes()
+        self.classes = [SICK, HEALTHY]
         self.root = Node(m_param)
         self.information_gain_func = information_gain_func
+        self.majority_class_func = majority_class_func
         #self.num_of_features = len(self.examples[0]) - 2
         # print("start your training, good luck")
-
-    def find_classes(self):
-        classes = []
-        for item in self.data_arr:
-            if item[0] not in classes:
-                classes.append(item[0])
-        return classes
 
     def train(self):
         """this function calls to the function that build the decision tree,
         and saves it in the classifier root"""
-        major_class = majority_class(self.examples)
+        major_class = self.majority_class_func(self.examples)
         self.root.build(self.examples, major_class, self.information_gain_func)
-
-    def majority_class(self, examples):
-        class_dict = {}
-        for item in self.classes:
-            class_dict[item] = 0
-        for e in examples:
-            class_dict[e[0]] += 1
-        max_value = max(class_dict.values())
-        majority_class_res = -1
-        for key in class_dict.keys():
-            if class_dict[key] is max_value:
-                majority_class_res = key
-        # print(majority_class_res)
-        return majority_class_res
 
     def test(self, test_group):
         """this test receives a set of data, and test the classifier
@@ -119,15 +102,12 @@ if __name__ == '__main__':
     classifier.train()
     tester = load_data("test.csv")
     classifier.test(tester)
+    #print(classifier.root.calc_height())
     loss = classifier.test_by_loss(tester)
     print(loss)
     # # print("now trying to minimize loss")
     # # minimize_loss("train.csv")
 
 
-    experiment("train.csv")
+    #experiment("train.csv")
 
-    # classifier = ID3("train.csv")
-    # classifier.train()
-    # fileName = "test.csv"
-    # classifier.test(fileName)
