@@ -14,10 +14,11 @@ def experiment(file_name):
     only need to add a call at the main function - experiment("train.csv")
     and it will run :)
     """
-    m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 130, 150, 175, 200, 250]
+    m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
     successes_rate = []
     kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
     data = load_data(file_name)
+    expirement = []
     for i in range(len(m_params_list)):
         accuracy = []
         for train_index, test_index in kf.split(data):
@@ -31,6 +32,8 @@ def experiment(file_name):
             success_rate = classifier_t.test(test_data)
             accuracy.append(success_rate)
         successes_rate.append(sum(accuracy) / len(accuracy))
+    expirement.sort(key=lambda x: x[0])
+    print(expirement)
     plt.plot(m_params_list, successes_rate)
     plt.xlabel("M parameter")
     plt.ylabel("successes rate")
@@ -90,7 +93,7 @@ if __name__ == '__main__':
 
     """loss calc, and minimize loss function"""
     # loss = classifier.test_by_loss(tester)
-    # minimize_loss("train.csv")
+    # print(loss)
 
     """this is the experiment"""
     # experiment("train.csv")

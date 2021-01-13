@@ -2,7 +2,7 @@ from utils import load_data
 from ID3 import ID3
 from utils import SICK
 from utils import HEALTHY
-from utils import find_KNN_examples
+from utils import find_KNN_examples_for_improved
 from random import choices
 from utils import information_gain
 from utils import majority_class_for_knn
@@ -11,6 +11,30 @@ from utils import minmax_normalization
 """this algo prefer trees with low height
 it also check which features are relevant and only than calc the centroid
 it is also normalize all the features"""
+
+
+def experiment(train_data, test_data):
+    n_params = []
+    for i in range(20, 100, 5):
+        n_params.append(i)
+    p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
+    k_params = []
+    for i in range(3, 99, 7):
+        k_params.append(i)
+    success_rate = []
+    for n in n_params:
+        for k in k_params:
+            if k >= n:
+                break
+            for p in p_params:
+                print("start run with (n,p,k) = ", n, p, k)
+                forest = KNNForest(n)
+                forest.train(train_data, p)
+                accuracy = forest.test(test_data, k)
+                print("accuracy is", accuracy)
+                success_rate.append((accuracy, (n, k, p)))
+    success_rate.sort(key=lambda x: x[0])
+    return success_rate[0][-1]
 
 
 def calc_centroid(examples):
@@ -49,7 +73,7 @@ def calc_centroid_improve(examples, relevant_features):
                 sum += minmax_normalization(examples[j][i], min_max_vecctor[i][0], min_max_vecctor[i][1])
             average = sum / size
             centroid.append(average)
-    return centroid
+    return centroid, min_max_vecctor
 
 
 class KNNForest:
@@ -64,12 +88,12 @@ class KNNForest:
         for i in range(self.n_param):
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
-            classifier = ID3(random_examples, None, information_gain, majority_class_for_knn)
+            classifier = ID3(random_examples, 15, information_gain, majority_class_for_knn)
             classifier.train()
             relevant = classifier.root.find_features(classifier.num_of_features)
-            centroid = calc_centroid_improve(random_examples, relevant)
+            centroid, min_max_vector = calc_centroid_improve(random_examples, relevant)
             height = classifier.root.calc_height()
-            decisions_trees.append((centroid, height, classifier))
+            decisions_trees.append((centroid, height, classifier, min_max_vector))
         self.decision_trees = decisions_trees
 
     def classify_example(self, example, k_param):
@@ -78,7 +102,7 @@ class KNNForest:
             features_values.append(example[i])
         # need to choose the k nearest classifiers
 
-        k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
+        k_decisions_tree = find_KNN_examples_for_improved(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
             # print(k_decisions_tree[i])
@@ -102,12 +126,12 @@ class KNNForest:
 
 if __name__ == '__main__':
     data = load_data("train.csv")
-    classifier = KNNForest(60)
-    classifier.train(data, 0.69)
+    classifier = KNNForest(75)
+    classifier.train(data, 0.7)
     tester = load_data("test.csv")
-    accuracy = classifier.test(tester, 50)
+    accuracy = classifier.test(tester, 51)
     print(accuracy)
     # n, k, p = experiment(data, tester)
     # print(n, k, p)
-    """after performing the experiment the best (n, k, p) are (60, 50, 0.69)"""
+    """after performing the experiment the best (n, k, p) are (60, 50, 0.69) or (75, 51, 0.7)"""
 

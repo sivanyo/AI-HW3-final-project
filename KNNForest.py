@@ -4,19 +4,7 @@ from utils import SICK
 from utils import HEALTHY
 from utils import find_KNN_examples
 from random import choices
-
-
-def calc_centroid(examples):
-    centroid = []
-    size = len(examples)
-    for i in range(1, len(examples[0])):
-        sum = 0.0
-        for j in range(len(examples)):
-            sum += examples[j][i]
-        average = sum / size
-        centroid.append(average)
-    # print(centroid)
-    return centroid
+from utils import calc_centroid
 
 
 class KNNForest:
@@ -84,7 +72,7 @@ def experiment(train_data, test_data):
                 accuracy = forest.test(test_data, k)
                 success_rate.append((accuracy, (n, k, p)))
     success_rate.sort(key=lambda x: x[0])
-    return success_rate[0][1]
+    return success_rate[0][-1]
 
 
 if __name__ == '__main__':
@@ -92,13 +80,8 @@ if __name__ == '__main__':
     classifier = KNNForest(60)
     classifier.train(data, 0.69)
     tester = load_data("test.csv")
-    accuracy = classifier.test(tester, 50)
+    accuracy = classifier.test(tester, 51)
     print(accuracy)
     # n, k, p = experiment(data, tester)
     # print(n, k, p)
     """after performing the experiment the best (n, k, p) are (60, 50, 0.69)"""
-
-
-
-
-
