@@ -83,6 +83,12 @@ class CostSensitiveID3(ID3):
 if __name__ == '__main__':
     # experiment("train.csv")
     data = load_data("train.csv")
+    classifier = ID3(data)
+    classifier.train()
+    test = load_data("test.csv")
+    loss = classifier.test_by_loss(test)
+    print("loss for ID3:", loss)
+    print("now try to minimize loss, loss of costSensitiveID3 is:")
     minimaizer = CostSensitiveID3(data, 25, information_gain_for_cost_sensitive, majority_class_for_cost, 5/100)
     minimaizer.minimize_loss("train.csv")
 

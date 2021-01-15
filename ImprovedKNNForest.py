@@ -8,6 +8,7 @@ from utils import information_gain
 from utils import majority_class_for_knn
 from utils import minmax_normalization
 from CostSensitiveID3 import CostSensitiveID3
+from utils import information_gain_for_improved_knn
 
 """this algo prefer trees with low height
 it also check which features are relevant and only than calc the centroid
@@ -20,6 +21,9 @@ def experiment(train_data, test_data):
         n_params.append(i)
     p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
     k_params = []
+    m_params = []
+    for i in range(1,25):
+        m_params.append(i)
     for i in range(3, 99, 7):
         k_params.append(i)
     success_rate = []
@@ -28,13 +32,15 @@ def experiment(train_data, test_data):
             if k >= n:
                 break
             for p in p_params:
-                print("start run with (n,p,k) = ", n, p, k)
-                forest = KNNForest(n)
-                forest.train(train_data, p)
-                accuracy = forest.test(test_data, k)
-                print("accuracy is", accuracy)
-                success_rate.append((accuracy, (n, k, p)))
+                for j in m_params:
+                    print("start run with (n,p,k) and m param = ", n, p, k, j)
+                    forest = KNNForest(n, j)
+                    forest.train(train_data, p)
+                    accuracy = forest.test(test_data, k)
+                    print("accuracy is", accuracy)
+                    success_rate.append((accuracy, (n, k, p, j)))
     success_rate.sort(key=lambda x: x[0])
+    print(success_rate)
     return success_rate[0][-1]
 
 
@@ -78,9 +84,10 @@ def calc_centroid_improve(examples, relevant_features):
 
 
 class KNNForest:
-    def __init__(self, n_param):
+    def __init__(self, n_param, m_param):
         self.n_param = n_param
         self.decision_trees = []
+        self.m_param = m_param
 
     def train(self, data, p_param):
         # kf = KFold(n_splits=3, shuffle=True, random_state=318981586)
@@ -89,8 +96,8 @@ class KNNForest:
         for i in range(self.n_param):
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
-            classifier = ID3(random_examples, 15, information_gain, majority_class_for_knn)
-            # classifier = CostSensitiveID3(random_examples, 25, information_gain, majority_class_for_knn, 3/100)
+            classifier = ID3(random_examples, self.m_param, information_gain, majority_class_for_knn)
+            # classifier = CostSensitiveID3(random_examples, 15, information_gain_for_improved_knn, majority_class_for_knn, 3/100)
             classifier.train()
             relevant = classifier.root.find_features(classifier.num_of_features)
             centroid, min_max_vector = calc_centroid_improve(random_examples, relevant)
@@ -128,12 +135,12 @@ class KNNForest:
 
 if __name__ == '__main__':
     data = load_data("train.csv")
-    classifier = KNNForest(75)
+    classifier = KNNForest(40, 4)
     classifier.train(data, 0.7)
     tester = load_data("test.csv")
-    accuracy = classifier.test(tester, 51)
+    accuracy = classifier.test(tester, 31)
     print(accuracy)
-    # n, k, p = experiment(data, tester)
-    # print(n, k, p)
+    #n, k, p = experiment(data, tester)
+    #print(n, k, p)
     """after performing the experiment the best (n, k, p) are (60, 50, 0.69) or (75, 51, 0.7)"""
 

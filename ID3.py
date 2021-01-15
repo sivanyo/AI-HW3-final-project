@@ -14,10 +14,11 @@ def experiment(file_name):
     only need to add a call at the main function - experiment("train.csv")
     and it will run :)
     """
-    #m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
-    m_params_list = []
-    for i in range(0,75):
-        m_params_list.append(i)
+    m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
+    # m_params_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    #m_params_list = []
+    #for i in range(0,75):
+    #    m_params_list.append(i)
     successes_rate = []
     kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
     data = load_data(file_name)
@@ -37,7 +38,6 @@ def experiment(file_name):
         successes_rate.append(sum(accuracy) / len(accuracy))
         experiment.append((sum(accuracy) / len(accuracy), m_params_list[i]))
     experiment.sort(key=lambda x: x[0])
-    print(experiment)
     plt.plot(m_params_list, successes_rate)
     plt.xlabel("M parameter")
     plt.ylabel("successes rate")
@@ -101,5 +101,5 @@ if __name__ == '__main__':
     print(loss)
 
     """this is the experiment"""
-    # experiment("train.csv")
+    experiment("train.csv")
 
