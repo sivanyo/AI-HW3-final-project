@@ -36,7 +36,7 @@ class Node:
             return self.left.find_class_by_example(example)
         return self.right.find_class_by_example(example)
 
-    def build(self, examples, default, information_gain_func):
+    def build(self, examples, default, information_gain_func, epsilon):
         """this function called by train function in ID3
         it builds the decision tree using the information gain function.
         finally, it returns a decision tree in which each node that is not a leaf we have
@@ -51,13 +51,13 @@ class Node:
             self.classification = default
             return
         new_default = majority_class(examples)
-        self.split_feature, self.split_val, left, right = information_gain_func(examples)
+        self.split_feature, self.split_val, left, right = information_gain_func(examples, epsilon)
         self.left = Node(self.m_param)
         self.right = Node(self.m_param)
         if len(left) != 0:
-            self.left.build(left, new_default, information_gain_func)
+            self.left.build(left, new_default, information_gain_func, epsilon)
         if len(right) != 0:
-            self.right.build(right, new_default, information_gain_func)
+            self.right.build(right, new_default, information_gain_func, epsilon)
 
     def find_features(self, features_num):
         relevant = []
@@ -128,7 +128,7 @@ def entropy(x, y):
     return entropy
 
 
-def information_gain(examples_group):
+def information_gain(examples_group, epsilon):
     """maxIG iff min entropy
     this function calculate the best IG for node and return the selected feature,
      the split val, and the two new sets of examples"""
@@ -266,7 +266,21 @@ def majority_class_for_knn(examples_group):
     return HEALTHY
 
 
-def information_gain_for_cost_sensitive(examples_group):
+def majority_class_for_cost(examples_group):
+    """this function gets a set of examples and returns the most common label
+    in this set"""
+    class_sick, class_health = [], []
+    for i in range(len(examples_group)):
+        if examples_group[i][0] is SICK:
+            class_sick.append(examples_group[i])
+        else:
+            class_health.append(examples_group[i])
+    if 1.1 * len(class_sick) >= len(class_health):
+        return SICK
+    return HEALTHY
+
+
+def information_gain_for_cost_sensitive(examples_group, epsilon):
     """maxIG iff min entropy
     this function calculate the best IG for node and return the selected feature,
      the split val, and the two new sets of examples"""
@@ -322,10 +336,10 @@ def information_gain_for_cost_sensitive(examples_group):
                     if majority_class(lower) is SICK:
                         """means that people with less than split val will classify as sick,
                         we want to inc this val a little bit just to be sure"""
-                        tmp_split_val = 1.01 * final_values[j]
+                        tmp_split_val = (1+epsilon) * final_values[j]
                     elif majority_class(lower) is HEALTHY:
                         """we will dec this val a little bit just to be sure"""
-                        tmp_split_val = 0.99 * final_values[j]
+                        tmp_split_val = (1-epsilon) * final_values[j]
                 tmp_h = higher
                 tmp_l = lower
         if tmp_min_entro <= min_entro:

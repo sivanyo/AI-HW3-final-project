@@ -14,11 +14,14 @@ def experiment(file_name):
     only need to add a call at the main function - experiment("train.csv")
     and it will run :)
     """
-    m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
+    #m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
+    m_params_list = []
+    for i in range(0,75):
+        m_params_list.append(i)
     successes_rate = []
     kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
     data = load_data(file_name)
-    expirement = []
+    experiment = []
     for i in range(len(m_params_list)):
         accuracy = []
         for train_index, test_index in kf.split(data):
@@ -32,8 +35,9 @@ def experiment(file_name):
             success_rate = classifier_t.test(test_data)
             accuracy.append(success_rate)
         successes_rate.append(sum(accuracy) / len(accuracy))
-    expirement.sort(key=lambda x: x[0])
-    print(expirement)
+        experiment.append((sum(accuracy) / len(accuracy), m_params_list[i]))
+    experiment.sort(key=lambda x: x[0])
+    print(experiment)
     plt.plot(m_params_list, successes_rate)
     plt.xlabel("M parameter")
     plt.ylabel("successes rate")
@@ -43,19 +47,20 @@ def experiment(file_name):
 class ID3:
 
     def __init__(self, data_arr, m_param=None, information_gain_func=information_gain,
-                 majority_class_func=majority_class):
+                 majority_class_func=majority_class, epsilon=None):
         self.examples = data_arr
         self.classes = [SICK, HEALTHY]
         self.root = Node(m_param)
         self.information_gain_func = information_gain_func
         self.majority_class_func = majority_class_func
         self.num_of_features = len(self.examples[0]) - 1
+        self.epsilon = epsilon
 
     def train(self):
         """this function calls to the function that build the decision tree,
         and saves it in the classifier root"""
         major_class = self.majority_class_func(self.examples)
-        self.root.build(self.examples, major_class, self.information_gain_func)
+        self.root.build(self.examples, major_class, self.information_gain_func, self.epsilon)
 
     def test(self, test_group):
         """this test receives a set of data, and test the classifier
@@ -92,8 +97,8 @@ if __name__ == '__main__':
     classifier.test(tester)
 
     """loss calc, and minimize loss function"""
-    # loss = classifier.test_by_loss(tester)
-    # print(loss)
+    loss = classifier.test_by_loss(tester)
+    print(loss)
 
     """this is the experiment"""
     # experiment("train.csv")

@@ -7,6 +7,7 @@ from random import choices
 from utils import information_gain
 from utils import majority_class_for_knn
 from utils import minmax_normalization
+from CostSensitiveID3 import CostSensitiveID3
 
 """this algo prefer trees with low height
 it also check which features are relevant and only than calc the centroid
@@ -89,6 +90,7 @@ class KNNForest:
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
             classifier = ID3(random_examples, 15, information_gain, majority_class_for_knn)
+            # classifier = CostSensitiveID3(random_examples, 25, information_gain, majority_class_for_knn, 3/100)
             classifier.train()
             relevant = classifier.root.find_features(classifier.num_of_features)
             centroid, min_max_vector = calc_centroid_improve(random_examples, relevant)
