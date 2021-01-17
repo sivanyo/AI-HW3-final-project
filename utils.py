@@ -36,7 +36,7 @@ class Node:
             return self.left.find_class_by_example(example)
         return self.right.find_class_by_example(example)
 
-    def build(self, examples, default, information_gain_func, epsilon):
+    def build(self, examples, default, information_gain_func, epsilon, delta):
         """this function called by train function in ID3
         it builds the decision tree using the information gain function.
         finally, it returns a decision tree in which each node that is not a leaf we have
@@ -51,13 +51,13 @@ class Node:
             self.classification = default
             return
         new_default = majority_class(examples)
-        self.split_feature, self.split_val, left, right = information_gain_func(examples, epsilon)
+        self.split_feature, self.split_val, left, right = information_gain_func(examples, epsilon, delta)
         self.left = Node(self.m_param)
         self.right = Node(self.m_param)
         if len(left) != 0:
-            self.left.build(left, new_default, information_gain_func, epsilon)
+            self.left.build(left, new_default, information_gain_func, epsilon, delta)
         if len(right) != 0:
-            self.right.build(right, new_default, information_gain_func, epsilon)
+            self.right.build(right, new_default, information_gain_func, epsilon, delta)
 
     def find_features(self, features_num):
         relevant = []
@@ -128,7 +128,16 @@ def entropy(x, y):
     return entropy
 
 
-def information_gain(examples_group, epsilon):
+def entropy_delta(x,y,delta):
+    """x is sick, y is healthy"""
+    if x is 0 or y is 0:
+        return 0
+    sum = x + y
+    entropy = (((-x / sum) * np.log2(x / sum)) * delta - ((y / sum) * np.log2(y / sum)))
+    return entropy
+
+
+def information_gain(examples_group, epsilon, delta):
     """maxIG iff min entropy
     this function calculate the best IG for node and return the selected feature,
      the split val, and the two new sets of examples"""
@@ -198,6 +207,16 @@ def lost(FP, FN, tester_size):
 """Basic KNN functions"""
 
 
+def normalized_ex(ex, minmax_vector):
+    normal = []
+    normal.append(ex[0])
+    for feature in range(1, len(ex)):
+        normalized_val = minmax_normalization(ex[feature], minmax_vector[feature-1][0], minmax_vector[feature-1][1])
+        normal.append(normalized_val)
+    # print(len(normal))
+    return normal
+
+
 def euclidean_distance(example_1, example_2):
     squares_sum = 0.0
     for i in range(1, len(example_2)):
@@ -206,12 +225,13 @@ def euclidean_distance(example_1, example_2):
     return e_distance
 
 
-def euclidean_distance_for_improved(example_1, example_2, min_max_tupple):
+def euclidean_distance_for_improved(example_1, example_2, relevant):
     squares_sum = 0.0
     for i in range(1, len(example_2)):
-        if example_2[i] != 0.0:
-            normalized_val = minmax_normalization(example_1[i], min_max_tupple[i+1][0], min_max_tupple[i+1][1])
-            squares_sum += (normalized_val - float(example_2[i])) ** 2
+        if i in relevant:
+            squares_sum += (float(example_1[i]) - float(example_2[i])) ** 2
+        else:
+            squares_sum += ((float(example_1[i]) - float(example_2[i])) ** 2)
     e_distance = np.sqrt(squares_sum)
     return e_distance
 
@@ -234,12 +254,33 @@ def calc_centroid(examples):
     return centroid
 
 
+def calc_centroid_for_impro(examples, relevant):
+    centroid = []
+    size = len(examples)
+    for i in range(1, len(examples[0])):
+        if i in relevant:
+            sum = 0.0
+            for j in range(len(examples)):
+                sum += examples[j][i]
+            average = sum / size
+            centroid.append(average/10)
+        else:
+            sum = 0.0
+            for j in range(len(examples)):
+                sum += examples[j][i]
+            average = sum / size
+            centroid.append(average)
+    # print(centroid)
+    return centroid
+
+
 def find_KNN_examples(data, example, k_param):
     distance_list = []
     for i in range(len(data)):
-        e_distance = euclidean_distance(example, data[i][0])
+        normalize_ex = normalized_ex(example, data[i][3])
+        e_distance = euclidean_distance(normalize_ex, data[i][1])
         height = data[i][1]
-        distance_list.append((e_distance, height, data[i]))
+        distance_list.append((e_distance, height, data[i], data[i][3]))
     distance_list.sort(key=lambda x: x[0])
     nearest = []
     for i in range(k_param):
@@ -280,7 +321,7 @@ def majority_class_for_cost(examples_group):
     return HEALTHY
 
 
-def information_gain_for_cost_sensitive(examples_group, epsilon):
+def information_gain_for_cost_sensitive(examples_group, epsilon, delta):
     """maxIG iff min entropy
     this function calculate the best IG for node and return the selected feature,
      the split val, and the two new sets of examples"""
@@ -318,7 +359,7 @@ def information_gain_for_cost_sensitive(examples_group, epsilon):
                 else:
                     lower_healthy.append(ex)
 
-            lower_entropy = entropy(len(lower_sick), len(lower_healthy))
+            lower_entropy = entropy_delta(len(lower_sick), len(lower_healthy), delta) #todo
 
             higher_sick, higher_healthy = [], []
             for ex in higher:
@@ -326,7 +367,7 @@ def information_gain_for_cost_sensitive(examples_group, epsilon):
                     higher_sick.append(ex)
                 else:
                     higher_healthy.append(ex)
-            higher_entropy = entropy(len(higher_healthy), len(higher_sick))
+            higher_entropy = entropy_delta(len(higher_sick), len(higher_healthy), delta)
             tmp_entro = (len(lower) * lower_entropy + len(higher) * higher_entropy) / size
 
             if tmp_entro < tmp_min_entro:
@@ -418,10 +459,13 @@ def information_gain_for_improved_knn(examples_group):
 def find_KNN_examples_for_improved(data, example, k_param):
     distance_list = []
     for i in range(len(data)):
-        e_distance_for_improved = euclidean_distance_for_improved(example, data[i][0], data[i][3])
+        e_distance_for_improved = euclidean_distance_for_improved(example, data[i][0], data[i][4])
         height = data[i][1]
-        distance_list.append((e_distance_for_improved, height, data[i]))
-    distance_list.sort(key=lambda x: x[0] * 0.9 + x[1] * 0.1)
+        score_for_accuracy = data[i][3]
+        distance_list.append((e_distance_for_improved, height, data[i], score_for_accuracy))
+    distance_list.sort(key=lambda x: x[0])
+    #distance_list.sort(key=lambda x: x[0] + x[1] * 100 + (1 - x[3]) * 100)
+    # print(distance_list)
     nearest = []
     for i in range(k_param):
         nearest.append(distance_list[i])

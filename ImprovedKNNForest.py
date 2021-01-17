@@ -1,5 +1,7 @@
 from utils import load_data
 from ID3 import ID3
+from ID3 import BetterID3
+from KNNForest import KNNForest
 from utils import SICK
 from utils import HEALTHY
 from utils import find_KNN_examples_for_improved
@@ -14,17 +16,16 @@ from utils import information_gain_for_improved_knn
 it also check which features are relevant and only than calc the centroid
 it is also normalize all the features"""
 
-
 def experiment(train_data, test_data):
     n_params = []
-    for i in range(20, 100, 5):
+    for i in range(5,70):
         n_params.append(i)
     p_params = [0.3, 0.4, 0.5, 0.6, 0.7]
     k_params = []
     m_params = []
     for i in range(1,25):
         m_params.append(i)
-    for i in range(3, 99, 7):
+    for i in range(3, 99, 3):
         k_params.append(i)
     success_rate = []
     for n in n_params:
@@ -34,7 +35,7 @@ def experiment(train_data, test_data):
             for p in p_params:
                 for j in m_params:
                     print("start run with (n,p,k) and m param = ", n, p, k, j)
-                    forest = KNNForest(n, j)
+                    forest = IKNNForest(n, j)
                     forest.train(train_data, p)
                     accuracy = forest.test(test_data, k)
                     print("accuracy is", accuracy)
@@ -57,37 +58,12 @@ def calc_centroid(examples):
     return centroid
 
 
-def calc_centroid_improve(examples, relevant_features):
-    centroid = []
-    size = len(examples)
-    min_max_vecctor = []
-    for i in range(1, len(examples[0])):
-        local_min = float('inf')
-        local_max = float('-inf')
-        for j in range(len(examples)):
-            if examples[j][i] < local_min:
-                local_min = examples[j][i]
-            if examples[j][i] > local_max:
-                local_max = examples[j][i]
-        min_max_vecctor.append((local_min, local_max))
-    for i in range(1, len(examples[0])):
-        if i not in relevant_features:
-            centroid.append(0.0)
-        else:
-            sum = 0.0
-            for j in range(len(examples)):
-                # print(j)
-                sum += minmax_normalization(examples[j][i], min_max_vecctor[i][0], min_max_vecctor[i][1])
-            average = sum / size
-            centroid.append(average)
-    return centroid, min_max_vecctor
-
-
-class KNNForest:
+class IKNNForest:
     def __init__(self, n_param, m_param):
         self.n_param = n_param
         self.decision_trees = []
         self.m_param = m_param
+        self.reg = []
 
     def train(self, data, p_param):
         # kf = KFold(n_splits=3, shuffle=True, random_state=318981586)
@@ -96,13 +72,14 @@ class KNNForest:
         for i in range(self.n_param):
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
+            test_group = [ex for ex in data if ex not in random_examples]
             classifier = ID3(random_examples, self.m_param, information_gain, majority_class_for_knn)
-            # classifier = CostSensitiveID3(random_examples, 15, information_gain_for_improved_knn, majority_class_for_knn, 3/100)
             classifier.train()
+            score = classifier.test(test_group, False)
             relevant = classifier.root.find_features(classifier.num_of_features)
-            centroid, min_max_vector = calc_centroid_improve(random_examples, relevant)
+            centroid = calc_centroid(random_examples)
             height = classifier.root.calc_height()
-            decisions_trees.append((centroid, height, classifier, min_max_vector))
+            decisions_trees.append((centroid, height, classifier, score, relevant))
         self.decision_trees = decisions_trees
 
     def classify_example(self, example, k_param):
@@ -117,14 +94,19 @@ class KNNForest:
             # print(k_decisions_tree[i])
             classification = k_decisions_tree[i][2][2].root.find_class_by_example(example)
             if classification is SICK:
-                sick_num += 1
+                #sick_num += 1
+                sick_num += (k_param - i)
+                #sick_num += 1 + (1/(i+1))
             else:
-                healthy_num += 1
+                #healthy_num += 1
+                healthy_num += (k_param - i)
+                #healthy_num += 1 + (1/(i+1))
         if sick_num > healthy_num:
             return SICK
         return HEALTHY
 
     def test(self, test_data, k_param):
+
         right = 0
         for i in range(len(test_data)):
             if self.classify_example(test_data[i], k_param) is test_data[i][0]:
@@ -133,12 +115,49 @@ class KNNForest:
         return right / (len(test_data))
 
 
-if __name__ == '__main__':
+def average_accuracy():
+    accuracy_list = []
     data = load_data("train.csv")
-    classifier = KNNForest(40, 4)
+    test = load_data("train.csv")
+    for i in range(20):
+        print("start", i, "run")
+        classifier = IKNNForest(8, 4)
+        classifier.train(data, 0.5)
+        accuracy = classifier.test(test, 5)
+        accuracy_list.append(accuracy)
+        print("accuracy is ", accuracy)
+    avg = sum(accuracy_list) / len(accuracy_list)
+    print("avg accuracy is:", avg)
+
+
+def find_who_is_better():
+    impro_Score, reg_score = 0, 0
+    data = load_data("train.csv")
+    tester = load_data("train.csv")
+    for i in range(20):
+        reg = KNNForest(60)
+        reg.train(data, 0.69)
+        accuracy = reg.test(tester, 50)
+        impro = IKNNForest(60, 4)
+        impro.train(data, 0.69)
+        impro_ac = impro.test(tester, 50)
+        if impro_ac >= accuracy:
+            impro_Score += 1
+        else:
+            reg_score += 1
+    print("improved knn forest was better at", impro_Score/(impro_Score+reg_score))
+
+
+if __name__ == '__main__':
+    #average_accuracy()
+    #find_who_is_better()
+    data = load_data("train.csv")
+    tester = load_data("train.csv")
+
+    #experiment(data, tester)
+    classifier = IKNNForest(40, 5)
     classifier.train(data, 0.7)
-    tester = load_data("test.csv")
-    accuracy = classifier.test(tester, 31)
+    accuracy = classifier.test(tester, 10)
     print(accuracy)
     #n, k, p = experiment(data, tester)
     #print(n, k, p)

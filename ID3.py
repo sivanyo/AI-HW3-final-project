@@ -2,6 +2,7 @@ from utils import load_data
 from utils import SICK
 from utils import HEALTHY
 from utils import Node
+from BetterNode import BetterNode
 from utils import lost
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
@@ -47,10 +48,55 @@ def experiment(file_name):
 class ID3:
 
     def __init__(self, data_arr, m_param=None, information_gain_func=information_gain,
-                 majority_class_func=majority_class, epsilon=None):
+                 majority_class_func=majority_class, epsilon=None, delta=None):
         self.examples = data_arr
         self.classes = [SICK, HEALTHY]
         self.root = Node(m_param)
+        self.information_gain_func = information_gain_func
+        self.majority_class_func = majority_class_func
+        self.num_of_features = len(self.examples[0]) - 1
+        self.epsilon = epsilon
+        self.delta = delta
+
+    def train(self):
+        """this function calls to the function that build the decision tree,
+        and saves it in the classifier root"""
+        major_class = self.majority_class_func(self.examples)
+        self.root.build(self.examples, major_class, self.information_gain_func, self.epsilon, self.delta)
+
+    def test(self, test_group, print):
+        """this test receives a set of data, and test the classifier
+        it prints the success rate"""
+        test_group = test_group
+        right, wrong = 0, 0
+        for i in range(len(test_group)):
+            if self.root.find_class_by_example(test_group[i]) == test_group[i][0]:
+                right += 1
+        if print:
+            print(right / (len(test_group)))  # todo : this is the only print that need to appear
+        return right / (len(test_group))
+
+    def test_by_loss(self, test_group):
+        """M - sick, B - healthy
+        fp += 1 iff test_group[i][0] = B and classify(test_group[i] = M
+        fn += 1 iff test_group[i][0] = M and classify(test+group[i] = B"""
+        test_group = test_group
+        FP, FN = 0, 0
+        size = len(test_group)
+        for i in range(size):
+            if self.root.find_class_by_example(test_group[i]) == 'M' and test_group[i][0] == 'B':
+                FP += 1
+            elif self.root.find_class_by_example(test_group[i]) == 'B' and test_group[i][0] == 'M':
+                FN += 1
+        loss = lost(FP, FN, size)
+        return loss
+
+class BetterID3:
+    def __init__(self, data_arr, m_param=None, information_gain_func=information_gain,
+                 majority_class_func=majority_class, epsilon=None):
+        self.examples = data_arr
+        self.classes = [SICK, HEALTHY]
+        self.root = BetterNode(m_param)
         self.information_gain_func = information_gain_func
         self.majority_class_func = majority_class_func
         self.num_of_features = len(self.examples[0]) - 1
@@ -62,7 +108,7 @@ class ID3:
         major_class = self.majority_class_func(self.examples)
         self.root.build(self.examples, major_class, self.information_gain_func, self.epsilon)
 
-    def test(self, test_group):
+    def test(self, test_group, print):
         """this test receives a set of data, and test the classifier
         it prints the success rate"""
         test_group = test_group
@@ -70,7 +116,8 @@ class ID3:
         for i in range(len(test_group)):
             if self.root.find_class_by_example(test_group[i]) == test_group[i][0]:
                 right += 1
-        print(right / (len(test_group)))  # todo : this is the only print that need to appear
+        if print:
+            print(right / (len(test_group)))  # todo : this is the only print that need to appear
         return right / (len(test_group))
 
     def test_by_loss(self, test_group):
@@ -94,7 +141,7 @@ if __name__ == '__main__':
     classifier = ID3(data)
     classifier.train()
     tester = load_data("test.csv")
-    classifier.test(tester)
+    classifier.test(tester, True)
 
     """loss calc, and minimize loss function"""
     loss = classifier.test_by_loss(tester)

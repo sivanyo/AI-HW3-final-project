@@ -1,3 +1,4 @@
+from ID3 import BetterID3
 from ID3 import ID3
 from utils import load_data
 from utils import information_gain_for_cost_sensitive
@@ -47,8 +48,8 @@ from utils import majority_class_for_cost
 #     plt.show()
 
 class CostSensitiveID3(ID3):
-    def __init__(self, data_arr, m_param, information_gain_func, majority_class_for_cost, epsilon):
-        ID3.__init__(self, data_arr, m_param, information_gain_func, majority_class_for_cost, epsilon)
+    def __init__(self, data_arr, m_param, information_gain_func, majority_class_for_cost, epsilon, delta):
+        ID3.__init__(self, data_arr, m_param, information_gain_func, majority_class_for_cost, epsilon, delta)
         self.classifiers = None
         self.m_param = m_param
         self.epsilon = epsilon
@@ -66,7 +67,7 @@ class CostSensitiveID3(ID3):
                 train_data.append(data[j])
             for j in test_index:
                 test_data.append(data[j])
-            classifier = CostSensitiveID3(train_data, self.m_param, information_gain_for_cost_sensitive, majority_class_for_cost, self.epsilon)
+            classifier = CostSensitiveID3(train_data, self.m_param, information_gain_for_cost_sensitive, majority_class_for_cost, self.epsilon,1)
             classifier.train()
             loss = classifier.test_by_loss(test_data)
             classifiers.append((classifier, loss))
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     loss = classifier.test_by_loss(test)
     print("loss for ID3:", loss)
     print("now try to minimize loss, loss of costSensitiveID3 is:")
-    minimaizer = CostSensitiveID3(data, 25, information_gain_for_cost_sensitive, majority_class_for_cost, 5/100)
+    minimaizer = CostSensitiveID3(data, 25, information_gain_for_cost_sensitive, majority_class_for_cost, 5/100, 1)
     minimaizer.minimize_loss("train.csv")
 
     """m param = 25, 1.05, 0.95 are the best so far"""

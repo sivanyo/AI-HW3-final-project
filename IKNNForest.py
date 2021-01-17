@@ -4,25 +4,69 @@ from utils import SICK
 from utils import HEALTHY
 from utils import find_KNN_examples
 from random import choices
-from utils import calc_centroid
+from utils import calc_centroid_for_impro
+from utils import minmax_normalization
+from utils import normalized_ex
+
+"""this is an improvement for the regular KNNForest
+this algo - 
+* gives more attention to near neighbors
+* prefers more accurate trees
+* normalizes all the data
+* keeps in mind which features were relevant in building the tree
+* choose the best m_param
+* ? - choose the best (n,p,k) for the particular data set
+"""
 
 
-class KNNForest:
+def create_minmax_vector(examples):
+    minmax_vector = []
+    for feature in range(1, len(examples[0])):
+        local_min = float('inf')
+        local_max = float('-inf')
+        for ex in examples:
+            if ex[feature] < local_min:
+                local_min = ex[feature]
+            if ex[feature] > local_max:
+                local_max = ex[feature]
+        minmax_vector.append((local_min, local_max))
+    return minmax_vector
+
+
+def normalized_set(data, minmax_vector):
+    normalized_data = []
+    for ex in data:
+        normal = []
+        normal.append(ex[0])
+        for feature in range(1, len(data[0])):
+            normalized_val = minmax_normalization(ex[feature], minmax_vector[feature-1][0], minmax_vector[feature-1][1])
+            normal.append(normalized_val)
+        normalized_data.append(normal)
+    return normalized_data
+
+
+class IKNNForest:
     def __init__(self, n_param):
         self.n_param = n_param
         self.decision_trees = []
 
     def train(self, data, p_param):
-        # kf = KFold(n_splits=3, shuffle=True, random_state=318981586)
         decisions_trees = []
 
         for i in range(self.n_param):
             size = p_param*self.n_param
             random_examples = choices(data, k=int(size))
-            classifier = ID3(random_examples)
+            minmax_vector = create_minmax_vector(random_examples)
+            normalized_data = normalized_set(random_examples, minmax_vector)
+            classifier = ID3(normalized_data, 3)
             classifier.train()
-            centroid = calc_centroid(random_examples)
-            decisions_trees.append((centroid, classifier))
+            test_group = [ex for ex in data if ex not in random_examples]
+            normalized_test = normalized_set(test_group, minmax_vector)
+            relevant = classifier.root.find_features(classifier.num_of_features)
+            score = classifier.test(normalized_test, False)
+            centroid = calc_centroid_for_impro(random_examples, relevant)
+            decisions_trees.append((1-score, centroid, classifier, minmax_vector, relevant))
+            decisions_trees.sort(key=lambda x: x[0])
         self.decision_trees = decisions_trees
 
     def classify_example(self, example, k_param):
@@ -34,11 +78,12 @@ class KNNForest:
         k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
-            classification = k_decisions_tree[i][2][1].root.find_class_by_example(example)
+            normal_ex = normalized_ex(example, k_decisions_tree[i][3])
+            classification = k_decisions_tree[i][2][2].root.find_class_by_example(normal_ex)
             if classification is SICK:
-                sick_num += 1
+                sick_num += k_param + 1 - i
             else:
-                healthy_num += 1
+                healthy_num += k_param + 1 - i
         if sick_num > healthy_num:
             return SICK
         return HEALTHY
@@ -67,7 +112,7 @@ def experiment(train_data, test_data):
                 break
             for p in p_params:
                 print("start run")
-                forest = KNNForest(n)
+                forest = IKNNForest(n)
                 forest.train(train_data, p)
                 accuracy = forest.test(test_data, k)
                 success_rate.append((accuracy, (n, k, p)))
@@ -81,7 +126,7 @@ def average_accuracy():
     test = load_data("train.csv")
     for i in range(100):
         print("start", i, "run")
-        classifier = KNNForest(60)
+        classifier = IKNNForest(60)
         classifier.train(data, 0.69)
         accuracy = classifier.test(test, 50)
         accuracy_list.append(accuracy)
@@ -93,8 +138,8 @@ def average_accuracy():
 if __name__ == '__main__':
     # average_accuracy()
     data = load_data("train.csv")
-    classifier = KNNForest(60)
-    classifier.train(data, 0.69)
+    classifier = IKNNForest(60)
+    classifier.train(data, 0.5)
     tester = load_data("test.csv")
     accuracy = classifier.test(tester, 51)
     print(accuracy)
