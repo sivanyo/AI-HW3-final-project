@@ -2,10 +2,21 @@ from utils import load_data
 from ID3 import ID3
 from utils import SICK
 from utils import HEALTHY
-from utils import find_KNN_examples
-from random import choices
+from utils import euclidean_distance
 from utils import calc_centroid
+from random import sample
 
+
+def find_KNN_examples(data, example, k_param):
+    distance_list = []
+    for i in range(len(data)):
+        e_distance = euclidean_distance(example, data[i][0])
+        distance_list.append((e_distance, data[i][1]))
+    distance_list.sort(key=lambda x: x[0])
+    nearest = []
+    for i in range(k_param):
+        nearest.append(distance_list[i])
+    return nearest
 
 class KNNForest:
     def __init__(self, n_param):
@@ -18,7 +29,7 @@ class KNNForest:
 
         for i in range(self.n_param):
             size = p_param*self.n_param
-            random_examples = choices(data, k=int(size))
+            random_examples = sample(data, k=int(size))
             classifier = ID3(random_examples)
             classifier.train()
             centroid = calc_centroid(random_examples)
@@ -34,7 +45,7 @@ class KNNForest:
         k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
-            classification = k_decisions_tree[i][2][1].root.find_class_by_example(example)
+            classification = k_decisions_tree[i][1].root.find_class_by_example(example)
             if classification is SICK:
                 sick_num += 1
             else:

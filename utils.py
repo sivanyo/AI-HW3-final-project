@@ -274,11 +274,24 @@ def calc_centroid_for_impro(examples, relevant):
     return centroid
 
 
-def find_KNN_examples(data, example, k_param):
+def find_KNN_examples_improved(data, example, k_param):
     distance_list = []
     for i in range(len(data)):
         normalize_ex = normalized_ex(example, data[i][3])
         e_distance = euclidean_distance(normalize_ex, data[i][1])
+        height = data[i][1]
+        distance_list.append((e_distance, height, data[i], data[i][3]))
+    distance_list.sort(key=lambda x: x[0])
+    nearest = []
+    for i in range(k_param):
+        nearest.append(distance_list[i])
+    return nearest
+
+
+def find_KNN_examples(data, example, k_param):
+    distance_list = []
+    for i in range(len(data)):
+        e_distance = euclidean_distance(example, data[i][1])
         height = data[i][1]
         distance_list.append((e_distance, height, data[i], data[i][3]))
     distance_list.sort(key=lambda x: x[0])
@@ -455,21 +468,6 @@ def information_gain_for_improved_knn(examples_group):
                 lower_final = tmp_l
     return selected_feature, split_val, lower_final, higher_final
 
-
-def find_KNN_examples_for_improved(data, example, k_param):
-    distance_list = []
-    for i in range(len(data)):
-        e_distance_for_improved = euclidean_distance_for_improved(example, data[i][0], data[i][4])
-        height = data[i][1]
-        score_for_accuracy = data[i][3]
-        distance_list.append((e_distance_for_improved, height, data[i], score_for_accuracy))
-    distance_list.sort(key=lambda x: x[0])
-    #distance_list.sort(key=lambda x: x[0] + x[1] * 100 + (1 - x[3]) * 100)
-    # print(distance_list)
-    nearest = []
-    for i in range(k_param):
-        nearest.append(distance_list[i])
-    return nearest
 
 
 def find_relevant_features(decision_tree, features_num):

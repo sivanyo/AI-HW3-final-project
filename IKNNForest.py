@@ -2,11 +2,12 @@ from utils import load_data
 from ID3 import ID3
 from utils import SICK
 from utils import HEALTHY
-from utils import find_KNN_examples
+from utils import find_KNN_examples_improved
 from random import choices
 from utils import calc_centroid_for_impro
 from utils import minmax_normalization
 from utils import normalized_ex
+from random import sample
 
 """this is an improvement for the regular KNNForest
 this algo - 
@@ -55,7 +56,7 @@ class IKNNForest:
 
         for i in range(self.n_param):
             size = p_param*self.n_param
-            random_examples = choices(data, k=int(size))
+            random_examples = sample(data, k=int(size))
             minmax_vector = create_minmax_vector(random_examples)
             normalized_data = normalized_set(random_examples, minmax_vector)
             classifier = ID3(normalized_data, 3)
@@ -75,7 +76,7 @@ class IKNNForest:
             features_values.append(example[i])
         # need to choose the k nearest classifiers
 
-        k_decisions_tree = find_KNN_examples(self.decision_trees, example, k_param)
+        k_decisions_tree = find_KNN_examples_improved(self.decision_trees, example, k_param)
         sick_num, healthy_num = 0, 0
         for i in range(k_param):
             normal_ex = normalized_ex(example, k_decisions_tree[i][3])
