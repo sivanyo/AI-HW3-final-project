@@ -128,7 +128,7 @@ def entropy(x, y):
     return entropy
 
 
-def entropy_delta(x,y,delta):
+def entropy_delta(x, y, delta):
     """x is sick, y is healthy"""
     if x is 0 or y is 0:
         return 0
@@ -225,17 +225,6 @@ def euclidean_distance(example_1, example_2):
     return e_distance
 
 
-def euclidean_distance_for_improved(example_1, example_2, relevant):
-    squares_sum = 0.0
-    for i in range(1, len(example_2)):
-        if i in relevant:
-            squares_sum += (float(example_1[i]) - float(example_2[i])) ** 2
-        else:
-            squares_sum += ((float(example_1[i]) - float(example_2[i])) ** 2)
-    e_distance = np.sqrt(squares_sum)
-    return e_distance
-
-
 def minmax_normalization(value, min_val, max_val):
     normalized_val = float((float(value) - float(min_val)) / (float(max_val) - float(min_val)))
     return normalized_val
@@ -250,42 +239,7 @@ def calc_centroid(examples):
             sum += examples[j][i]
         average = sum / size
         centroid.append(average)
-    # print(centroid)
     return centroid
-
-
-def calc_centroid_for_impro(examples, relevant):
-    centroid = []
-    size = len(examples)
-    for i in range(1, len(examples[0])):
-        if i in relevant:
-            sum = 0.0
-            for j in range(len(examples)):
-                sum += examples[j][i]
-            average = sum / size
-            centroid.append(average/10)
-        else:
-            sum = 0.0
-            for j in range(len(examples)):
-                sum += examples[j][i]
-            average = sum / size
-            centroid.append(average)
-    # print(centroid)
-    return centroid
-
-
-def find_KNN_examples_improved(data, example, k_param):
-    distance_list = []
-    for i in range(len(data)):
-        normalize_ex = normalized_ex(example, data[i][3])
-        e_distance = euclidean_distance(normalize_ex, data[i][1])
-        height = data[i][1]
-        distance_list.append((e_distance, height, data[i], data[i][3]))
-    distance_list.sort(key=lambda x: x[0])
-    nearest = []
-    for i in range(k_param):
-        nearest.append(distance_list[i])
-    return nearest
 
 
 def find_KNN_examples(data, example, k_param):
@@ -405,71 +359,6 @@ def information_gain_for_cost_sensitive(examples_group, epsilon, delta):
     return selected_feature, split_val, lower_final, higher_final
 
 
-def information_gain_for_improved_knn(examples_group):
-    """maxIG iff min entropy
-    this function calculate the best IG for node and return the selected feature,
-     the split val, and the two new sets of examples"""
-    size = len(examples_group)
-    min_entro = float('inf')
-    selected_feature = -1
-    higher_final, lower_final = [], []
-    split_val = None
-    for i in range(1, len(examples_group[0])):
-        tmp_min_entro = float('inf')
-        tmp_split_val = None
-        values = []
-        for item in examples_group:
-            if float(item[i]) not in values:
-                values.append(float(item[i]))
-        values = np.unique(values)
-
-        final_values = []
-        for j in range(len(values) - 1):
-            if values[j] is not values[j + 1]:
-                final_values.append((float(values[j]) + float(values[j + 1])) / 2)
-        final_values.sort()
-        tmp_h, tmp_l = [], []
-        for j in range(len(final_values)):
-            lower, higher = [], []
-            for ex in examples_group:
-                if float(ex[i]) < final_values[j]:
-                    lower.append(ex)
-                else:
-                    higher.append(ex)
-            lower_sick, lower_healthy = [], []
-            for ex in lower:
-                if ex[0] == SICK:
-                    lower_sick.append(ex)
-                else:
-                    lower_healthy.append(ex)
-
-            lower_entropy = entropy(len(lower_sick), len(lower_healthy))
-
-            higher_sick, higher_healthy = [], []
-            for ex in higher:
-                if ex[0] == SICK:
-                    higher_sick.append(ex)
-                else:
-                    higher_healthy.append(ex)
-            higher_entropy = entropy(len(higher_healthy), len(higher_sick))
-            tmp_entro = (len(lower) * lower_entropy + len(higher) * higher_entropy) / size
-
-            if tmp_entro < tmp_min_entro:
-                tmp_min_entro = tmp_entro
-                tmp_split_val = values[j]
-                tmp_h = higher
-                tmp_l = lower
-        if majority_class_for_knn(tmp_h) is None and majority_class_for_knn(tmp_l) is None:
-            if tmp_min_entro <= min_entro:
-                min_entro = tmp_min_entro
-                split_val = tmp_split_val
-                selected_feature = i
-                higher_final = tmp_h
-                lower_final = tmp_l
-    return selected_feature, split_val, lower_final, higher_final
-
-
-
 def find_relevant_features(decision_tree, features_num):
     """this function will go over the tree, and will return all the indexes that will
     effect the decisions"""
@@ -479,4 +368,48 @@ def find_relevant_features(decision_tree, features_num):
         if i in decision_tree.find_features(i):
             relevant.append(i)
     return relevant
+
+
+def find_KNN_examples_improved(data, example, k_param):
+    distance_list = []
+    for i in range(len(data)):
+        normalize_ex = normalized_ex(example, data[i][3])
+        e_distance = euclidean_distance(normalize_ex, data[i][1])
+        height = data[i][1]
+        distance_list.append((e_distance, height, data[i], data[i][3]))
+    distance_list.sort(key=lambda x: x[0])
+    nearest = []
+    for i in range(k_param):
+        nearest.append(distance_list[i])
+    return nearest
+
+
+def calc_centroid_for_impro(examples, relevant):
+    centroid = []
+    size = len(examples)
+    for i in range(1, len(examples[0])):
+        if i in relevant:
+            sum = 0.0
+            for j in range(len(examples)):
+                sum += examples[j][i]
+            average = sum / size
+            centroid.append(average/10)
+        else:
+            sum = 0.0
+            for j in range(len(examples)):
+                sum += examples[j][i]
+            average = sum / size
+            centroid.append(average)
+    return centroid
+
+
+def euclidean_distance_for_improved(example_1, example_2, relevant):
+    squares_sum = 0.0
+    for i in range(1, len(example_2)):
+        if i in relevant:
+            squares_sum += (float(example_1[i]) - float(example_2[i])) ** 2
+        else:
+            squares_sum += ((float(example_1[i]) - float(example_2[i])) ** 2)
+    e_distance = np.sqrt(squares_sum)
+    return e_distance
 

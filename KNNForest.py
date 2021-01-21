@@ -5,6 +5,7 @@ from utils import HEALTHY
 from utils import euclidean_distance
 from utils import calc_centroid
 from random import sample
+from sklearn.model_selection import KFold
 
 
 def find_KNN_examples(data, example, k_param):
@@ -89,16 +90,34 @@ def experiment(train_data, test_data):
 def average_accuracy():
     accuracy_list = []
     data = load_data("train.csv")
-    test = load_data("train.csv")
-    for i in range(100):
+    test = load_data("test.csv")
+    for i in range(20):
         print("start", i, "run")
         classifier = KNNForest(60)
-        classifier.train(data, 0.69)
+        classifier.train(data, 0.5)
         accuracy = classifier.test(test, 50)
         accuracy_list.append(accuracy)
         print("accuracy is ", accuracy)
     avg = sum(accuracy_list) / len(accuracy_list)
     print("avg accuracy is:", avg)
+
+
+def merge(file_name):
+    kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
+    data = load_data(file_name)
+    ac=[]
+    for train_index, test_index in kf.split(data):
+        train_data, test_data = [], []
+        for j in train_index:
+            train_data.append(data[j])
+        for j in test_index:
+            test_data.append(data[j])
+        classifier = KNNForest(60)
+        classifier.train(train_data, 0.69)
+        acc = classifier.test(test_data, 51)
+        ac.append(acc)
+        #print(acc)
+    print(sum(ac) / len(ac))
 
 
 if __name__ == '__main__':

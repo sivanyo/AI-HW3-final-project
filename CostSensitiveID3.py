@@ -1,51 +1,9 @@
-from ID3 import BetterID3
 from ID3 import ID3
 from utils import load_data
 from utils import information_gain_for_cost_sensitive
-from utils import minmax_normalization
 from sklearn.model_selection import KFold
-from matplotlib import pyplot as plt
 from utils import majority_class_for_cost
 
-
-# def experiment(file_name):
-#     """this function is the experiment
-#     only need to add a call at the main function - experiment("train.csv")
-#     and it will run :)
-#     """
-#     #m_params_list = [1, 2, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 120, 150, 175, 200, 250]
-#     m_params_list = []
-#     for i in range(0, 20):
-#         m_params_list.append(i)
-#     successes_rate = []
-#     kf = KFold(n_splits=5, shuffle=True, random_state=318981586)
-#     data = load_data(file_name)
-#     test = load_data("test.csv")
-#     experiment = []
-#     for i in range(len(m_params_list)):
-#         accuracy = []
-#         for train_index, test_index in kf.split(data):
-#             train_data, test_data = [], []
-#             for j in train_index:
-#                 train_data.append(data[j])
-#             for j in test_index:
-#                 test_data.append(data[j])
-#             classifier_t = CostSensitiveID3(train_data, m_params_list[i], information_gain_for_cost_sensitive)
-#             classifier_t.train()
-#             success_rate = classifier_t.test_by_loss(test_data)
-#             if success_rate < 0.002:
-#                 loss = classifier_t.test_by_loss(test)
-#                 print(loss, m_params_list[i])
-#             accuracy.append(success_rate)
-#         print(sum(accuracy) / len(accuracy))
-#         successes_rate.append(sum(accuracy) / len(accuracy))
-#         experiment.append((sum(accuracy) / len(accuracy), m_params_list[i]))
-#     experiment.sort(key=lambda x: x[0])
-#     print(experiment)
-#     plt.plot(m_params_list, successes_rate)
-#     plt.xlabel("M parameter")
-#     plt.ylabel("loss")
-#     plt.show()
 
 class CostSensitiveID3(ID3):
     def __init__(self, data_arr, m_param, information_gain_func, majority_class_for_cost, epsilon, delta):
@@ -53,7 +11,6 @@ class CostSensitiveID3(ID3):
         self.classifiers = None
         self.m_param = m_param
         self.epsilon = epsilon
-    """maybe more than 2 splits ?"""
     """this is 2 variables function - the dominant one is FN, 
     so we will prefer to classify a bounded person as sick """
     def minimize_loss(self, file_name):
@@ -67,7 +24,8 @@ class CostSensitiveID3(ID3):
                 train_data.append(data[j])
             for j in test_index:
                 test_data.append(data[j])
-            classifier = CostSensitiveID3(train_data, self.m_param, information_gain_for_cost_sensitive, majority_class_for_cost, self.epsilon,1)
+            classifier = CostSensitiveID3(train_data, self.m_param, information_gain_for_cost_sensitive,
+                                          majority_class_for_cost, self.epsilon, 1)
             classifier.train()
             loss = classifier.test_by_loss(test_data)
             classifiers.append((classifier, loss))
@@ -80,16 +38,17 @@ class CostSensitiveID3(ID3):
         print(loss)
 
 
-
 if __name__ == '__main__':
-    # experiment("train.csv")
-    data = load_data("train.csv")
+    """ 
+    data = load_data("data_big.csv")
     classifier = ID3(data)
     classifier.train()
-    test = load_data("test.csv")
+    test = load_data("test_big.csv")
     loss = classifier.test_by_loss(test)
     print("loss for ID3:", loss)
     print("now try to minimize loss, loss of costSensitiveID3 is:")
+    """
+    data = load_data("train.csv")
     minimaizer = CostSensitiveID3(data, 25, information_gain_for_cost_sensitive, majority_class_for_cost, 5/100, 1)
     minimaizer.minimize_loss("train.csv")
 
