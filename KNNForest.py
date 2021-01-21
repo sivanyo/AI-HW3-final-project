@@ -19,6 +19,7 @@ def find_KNN_examples(data, example, k_param):
         nearest.append(distance_list[i])
     return nearest
 
+
 class KNNForest:
     def __init__(self, n_param):
         self.n_param = n_param
